@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC管理画面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        tr:hover {
+            background-color: #ddd;
+        }
+        .empty-message {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .edit-btn {
+            background-color: #2196F3;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .edit-btn:hover {
+            background-color: #0b7dda;
+        }
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .delete-btn:hover {
+            background-color: #da190b;
+        }
+        .add-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .add-link:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>PC管理画面</h1>
+
+    <a href="/pcs/register" class="add-link">新規登録</a>
+
+    {% if pcs %}
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>名前</th>
+                <th>モデル</th>
+                <th>シリアル番号</th>
+                <th>割り当て先</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pc in pcs %}
+            <tr>
+                <td>{{ pc.id }}</td>
+                <td>{{ pc.name }}</td>
+                <td>{{ pc.model }}</td>
+                <td>{{ pc.serial_number }}</td>
+                <td>{{ pc.assigned_to }}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="/pcs/{{ pc.id }}/edit" class="edit-btn">編集</a>
+                        <form method="POST" action="/pcs/{{ pc.id }}/delete" style="margin: 0;">
+                            <button type="submit" class="delete-btn" onclick="return confirm('本当に削除しますか？')">削除</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-message">登録されているPCはありません。</p>
+    {% endif %}
+</body>
+</html>

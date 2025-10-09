@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC登録画面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>PC登録</h1>
+
+    {% if success %}
+    <div class="success-message">
+        PCを登録しました。
+    </div>
+    {% endif %}
+
+    <form method="POST" action="/pcs/register">
+        <div class="form-group">
+            <label for="name">名前:</label>
+            <input type="text" id="name" name="name" required>
+        </div>
+
+        <div class="form-group">
+            <label for="model">モデル:</label>
+            <input type="text" id="model" name="model" required>
+        </div>
+
+        <div class="form-group">
+            <label for="serial_number">シリアル番号:</label>
+            <input type="text" id="serial_number" name="serial_number" required>
+        </div>
+
+        <div class="form-group">
+            <label for="assigned_to">割り当て先:</label>
+            <input type="text" id="assigned_to" name="assigned_to" required>
+        </div>
+
+        <button type="submit">登録</button>
+    </form>
+
+    <a href="/pcs/view" class="back-link">← 一覧に戻る</a>
+</body>
+</html>

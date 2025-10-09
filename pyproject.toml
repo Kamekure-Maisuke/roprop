@@ -1,0 +1,15 @@
+[project]
+name = "roprop"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "litestar[standard]>=2.18.0",
+]
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.31.6",
+    "pytest>=8.4.2"
+]
