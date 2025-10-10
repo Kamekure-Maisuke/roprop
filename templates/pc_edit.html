@@ -97,7 +97,10 @@
                     <option value="" {% if not pc.assigned_to %}selected{% endif %}>未割り当て</option>
                     {% for employee in employees %}
                     <option value="{{ employee.id }}" {% if pc.assigned_to and pc.assigned_to|string == employee.id|string %}selected{% endif %}>
-                        {{ employee.name }} ({{ employee.department }})
+                        {{ employee.name }}
+                        {% if employee.department_id and employee.department_id in departments %}
+                        ({{ departments[employee.department_id].name }})
+                        {% endif %}
                     </option>
                     {% endfor %}
                 </select>

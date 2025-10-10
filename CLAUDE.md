@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-Litestar(Python Webフレームワーク)を使用したPC・社員管理アプリケーションです。PC及び社員(Employee)レコードのCRUD操作を行うためのREST APIエンドポイントとHTMLベースのWebインターフェースの両方を提供します。PCは社員に割り当てることができます。データはディクショナリを使用してメモリ内に保存されます(サーバー再起動時にリセット)。
+Litestar(Python Webフレームワーク)を使用したPC・社員・部署管理アプリケーションです。PC、社員(Employee)、部署(Department)のCRUD操作を行うためのREST APIエンドポイントとHTMLベースのWebインターフェースの両方を提供します。PCは社員に割り当て可能で、社員は部署に所属します。データはディクショナリを使用してメモリ内に保存されます(サーバー再起動時にリセット)。
 
 ## コマンド
 
@@ -34,10 +34,13 @@ uv run pytest test_main.py::test_create_pc
 ### 開発用データ投入
 ```bash
 # サーバーを起動してから別ターミナルで実行
-# 1. 先に社員データを投入
+# 1. 先に部署データを投入
+uv run seeder/departments.py
+
+# 2. 次に社員データを投入(部署に割り当てるため)
 uv run seeder/employees.py
 
-# 2. 次にPCデータを投入(社員に割り当てるため)
+# 3. 最後にPCデータを投入(社員に割り当てるため)
 uv run seeder/pcs.py
 ```
 
@@ -48,12 +51,14 @@ uv run seeder/pcs.py
 アプリケーションは以下のファイルで構成されています:
 
 1. **models.py**: データモデル定義
-   - `Employee`: 社員情報(id, name, email, department)
+   - `Employee`: 社員情報(id, name, email, department_id)
    - `PC`: PC情報(id, name, model, serial_number, assigned_to)
+   - `Department`: 部署情報(id, name)
 2. **main.py**: すべてのルートハンドラとアプリケーション設定
 3. **test_main.py**: pytestフィクスチャを使用した包括的なテストスイート
 4. **seeder/**: 開発用データ投入スクリプト
-   - `employees.py`: 17名の社員データを投入
+   - `departments.py`: 5つの部署データを投入
+   - `employees.py`: 17名の社員データを投入(部署に割り当て済み)
    - `pcs.py`: 20台のPCデータを投入(一部は社員に割り当て済み)
 
 ### ルート構成
@@ -76,6 +81,13 @@ PC管理:
 - `PUT /employees/{employee_id}` - 社員更新
 - `DELETE /employees/{employee_id}` - 社員削除(204を返す)
 
+部署管理:
+- `POST /departments` - 部署作成(201を返す)
+- `GET /departments` - 全部署一覧取得
+- `GET /departments/{department_id}` - 特定部署取得
+- `PUT /departments/{department_id}` - 部署更新
+- `DELETE /departments/{department_id}` - 部署削除(204を返す)
+
 **HTMLフォームベースエンドポイント**:
 
 PC管理:
@@ -90,15 +102,25 @@ PC管理:
 - `GET /employees/{employee_id}/edit` + `POST /employees/{employee_id}/edit` - 編集フォーム
 - `POST /employees/{employee_id}/delete` - フォーム経由で削除
 
-### データストレージ
+部署管理:
+- `GET /departments/view` - 全部署をHTMLテーブルで表示
+- `GET /departments/register` + `POST /departments/register` - 登録フォーム
+- `GET /departments/{department_id}/edit` + `POST /departments/{department_id}/edit` - 編集フォーム
+- `POST /departments/{department_id}/delete` - フォーム経由で削除
+
+### データストレージとリレーション
 
 データはモジュールレベルのディクショナリに保存されます:
 - `pcs: dict[UUID, PC] = {}`
 - `employees: dict[UUID, Employee] = {}`
+- `departments: dict[UUID, Department] = {}`
 
 これらはインメモリのみでサーバー再起動時にリセットされます。テストスイートは`autouse=True`のpytestフィクスチャを使用して各テストの前後でこれらのディクショナリをクリアします。
 
-PCの`assigned_to`フィールドは`Employee`のUUID(またはNone)を保持し、PC-社員間の関係を表現します。
+リレーション:
+- PCの`assigned_to`フィールドは`Employee`のUUID(またはNone)を保持し、PC-社員間の関係を表現
+- 社員の`department_id`フィールドは`Department`のUUID(またはNone)を保持し、社員-部署間の関係を表現
+- HTMLテンプレートでは`departments`ディクショナリを使用して部署IDから部署名を表示
 
 ### テンプレートシステム
 
