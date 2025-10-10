@@ -2,7 +2,7 @@ from typing import cast
 from uuid import UUID
 import pytest
 from litestar.testing import TestClient
-from main import app, pcs, employees, departments
+from main import app, pcs, employees, departments, pc_assignment_histories
 
 
 @pytest.fixture(autouse=True)
@@ -11,10 +11,12 @@ def clear_storage():
     pcs.clear()
     employees.clear()
     departments.clear()
+    pc_assignment_histories.clear()
     yield
     pcs.clear()
     employees.clear()
     departments.clear()
+    pc_assignment_histories.clear()
 
 
 def test_create_pc():
@@ -455,4 +457,173 @@ def test_delete_employee_not_found():
         fake_id = "00000000-0000-0000-0000-000000000000"
         response = client.delete(f"/employees/{fake_id}")
 
+        assert response.status_code == 404
+
+
+def test_pc_assignment_history_on_create():
+    """Test that assignment history is recorded when a PC is created with an assigned employee."""
+    with TestClient(app=app) as client:
+        # Create an employee first
+        employee_data = {
+            "name": "Test Employee",
+            "email": "test@example.com",
+            "department_id": None,
+        }
+        emp_response = client.post("/employees", json=employee_data)
+        employee_id = cast(str, emp_response.json()["id"])
+
+        # Create a PC with the employee assigned
+        pc_data = {
+            "name": "Test PC",
+            "model": "Dell XPS 15",
+            "serial_number": "SN12345",
+            "assigned_to": employee_id,
+        }
+        pc_response = client.post("/pcs", json=pc_data)
+        pc_id = cast(str, pc_response.json()["id"])
+
+        # Check assignment history
+        history_response = client.get(f"/pcs/{pc_id}/history")
+        assert history_response.status_code == 200
+        histories = cast(list[dict[str, str]], history_response.json())
+        assert len(histories) == 1
+        assert histories[0]["pc_id"] == pc_id
+        assert histories[0]["employee_id"] == employee_id
+
+
+def test_pc_assignment_history_on_update():
+    """Test that assignment history is recorded when a PC assignment is updated."""
+    with TestClient(app=app) as client:
+        # Create two employees
+        emp1_data = {
+            "name": "Employee 1",
+            "email": "emp1@example.com",
+            "department_id": None,
+        }
+        emp1_response = client.post("/employees", json=emp1_data)
+        employee1_id = cast(str, emp1_response.json()["id"])
+
+        emp2_data = {
+            "name": "Employee 2",
+            "email": "emp2@example.com",
+            "department_id": None,
+        }
+        emp2_response = client.post("/employees", json=emp2_data)
+        employee2_id = cast(str, emp2_response.json()["id"])
+
+        # Create a PC without assignment
+        pc_data = {
+            "name": "Test PC",
+            "model": "Dell XPS 15",
+            "serial_number": "SN12345",
+            "assigned_to": None,
+        }
+        pc_response = client.post("/pcs", json=pc_data)
+        pc_id = cast(str, pc_response.json()["id"])
+
+        # Update PC to assign to employee 1
+        update_data = {
+            "id": pc_id,
+            "name": "Test PC",
+            "model": "Dell XPS 15",
+            "serial_number": "SN12345",
+            "assigned_to": employee1_id,
+        }
+        _ = client.put(f"/pcs/{pc_id}", json=update_data)
+
+        # Check assignment history
+        history_response = client.get(f"/pcs/{pc_id}/history")
+        histories = cast(list[dict[str, str]], history_response.json())
+        assert len(histories) == 1
+        assert histories[0]["employee_id"] == employee1_id
+
+        # Update PC to assign to employee 2
+        update_data["assigned_to"] = employee2_id
+        _ = client.put(f"/pcs/{pc_id}", json=update_data)
+
+        # Check assignment history again
+        history_response = client.get(f"/pcs/{pc_id}/history")
+        histories = cast(list[dict[str, str]], history_response.json())
+        assert len(histories) == 2
+
+        # Verify both assignments are recorded
+        employee_ids = [h["employee_id"] for h in histories]
+        assert employee1_id in employee_ids
+        assert employee2_id in employee_ids
+
+
+def test_pc_assignment_history_no_duplicate_on_same_assignment():
+    """Test that assignment history is not duplicated when assignment doesn't change."""
+    with TestClient(app=app) as client:
+        # Create an employee
+        employee_data = {
+            "name": "Test Employee",
+            "email": "test@example.com",
+            "department_id": None,
+        }
+        emp_response = client.post("/employees", json=employee_data)
+        employee_id = cast(str, emp_response.json()["id"])
+
+        # Create a PC with the employee assigned
+        pc_data = {
+            "name": "Test PC",
+            "model": "Dell XPS 15",
+            "serial_number": "SN12345",
+            "assigned_to": employee_id,
+        }
+        pc_response = client.post("/pcs", json=pc_data)
+        pc_id = cast(str, pc_response.json()["id"])
+
+        # Update PC with the same assignment
+        update_data = {
+            "id": pc_id,
+            "name": "Test PC Updated",
+            "model": "Dell XPS 15",
+            "serial_number": "SN12345",
+            "assigned_to": employee_id,
+        }
+        _ = client.put(f"/pcs/{pc_id}", json=update_data)
+
+        # Check assignment history - should still be 1
+        history_response = client.get(f"/pcs/{pc_id}/history")
+        histories = cast(list[dict[str, str]], history_response.json())
+        assert len(histories) == 1
+
+
+def test_pc_assignment_history_view():
+    """Test GET /pcs/{pc_id}/history/view - View assignment history in HTML."""
+    with TestClient(app=app) as client:
+        # Create an employee
+        employee_data = {
+            "name": "Test Employee",
+            "email": "test@example.com",
+            "department_id": None,
+        }
+        emp_response = client.post("/employees", json=employee_data)
+        employee_id = cast(str, emp_response.json()["id"])
+
+        # Create a PC with the employee assigned
+        pc_data = {
+            "name": "Test PC",
+            "model": "Dell XPS 15",
+            "serial_number": "SN12345",
+            "assigned_to": employee_id,
+        }
+        pc_response = client.post("/pcs", json=pc_data)
+        pc_id = cast(str, pc_response.json()["id"])
+
+        # Get HTML view
+        response = client.get(f"/pcs/{pc_id}/history/view")
+        assert response.status_code == 200
+        assert (
+            b"PC\xe5\x89\xb2\xe3\x82\x8a\xe5\xbd\x93\xe3\x81\xa6\xe5\xb1\xa5\xe6\xad\xb4"
+            in response.content
+        )  # "PC割り当て履歴" in UTF-8
+
+
+def test_pc_assignment_history_not_found():
+    """Test GET /pcs/{pc_id}/history - PC not found."""
+    with TestClient(app=app) as client:
+        fake_id = "00000000-0000-0000-0000-000000000000"
+        response = client.get(f"/pcs/{fake_id}/history")
         assert response.status_code == 404

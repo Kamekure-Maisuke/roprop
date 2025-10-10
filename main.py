@@ -10,19 +10,26 @@ from litestar.response import Template, Redirect
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from litestar.template.config import TemplateConfig
 
-from models import PC, Employee, Department
+from models import PC, Employee, Department, PCAssignmentHistory
 
 
 # In-memory storage
 pcs: dict[UUID, PC] = {}
 employees: dict[UUID, Employee] = {}
 departments: dict[UUID, Department] = {}
+pc_assignment_histories: dict[UUID, PCAssignmentHistory] = {}
 
 
 @post("/pcs", status_code=HTTP_201_CREATED)
 async def create_pc(data: PC) -> PC:
     """Create a new PC."""
     pcs[data.id] = data
+
+    # Record initial assignment if assigned_to is set
+    if data.assigned_to is not None:
+        history = PCAssignmentHistory(pc_id=data.id, employee_id=data.assigned_to)
+        pc_assignment_histories[history.id] = history
+
     return data
 
 
@@ -45,6 +52,13 @@ async def update_pc(pc_id: UUID, data: PC) -> PC:
     """Update an existing PC."""
     if pc_id not in pcs:
         raise NotFoundException(detail=f"PC with ID {pc_id} not found")
+
+    # Record assignment history if assigned_to changed
+    old_pc = pcs[pc_id]
+    if old_pc.assigned_to != data.assigned_to:
+        history = PCAssignmentHistory(pc_id=pc_id, employee_id=data.assigned_to)
+        pc_assignment_histories[history.id] = history
+
     data.id = pc_id
     pcs[pc_id] = data
     return data
@@ -93,6 +107,11 @@ async def register_pc(
         assigned_to=assigned_to,
     )
     pcs[pc.id] = pc
+
+    # Record initial assignment if assigned_to is set
+    if assigned_to is not None:
+        history = PCAssignmentHistory(pc_id=pc.id, employee_id=assigned_to)
+        pc_assignment_histories[history.id] = history
     return Template(
         template_name="pc_register.html",
         context={
@@ -127,7 +146,13 @@ async def edit_pc(
     if pc_id not in pcs:
         raise NotFoundException(detail=f"PC with ID {pc_id} not found")
 
+    # Record assignment history if assigned_to changed
+    old_pc = pcs[pc_id]
     assigned_to = UUID(data["assigned_to"]) if data.get("assigned_to") else None
+    if old_pc.assigned_to != assigned_to:
+        history = PCAssignmentHistory(pc_id=pc_id, employee_id=assigned_to)
+        pc_assignment_histories[history.id] = history
+
     pc = PC(
         id=pc_id,
         name=data["name"],
@@ -146,6 +171,31 @@ async def delete_pc_form(pc_id: UUID) -> Redirect:
         raise NotFoundException(detail=f"PC with ID {pc_id} not found")
     del pcs[pc_id]
     return Redirect(path="/pcs/view")
+
+
+@get("/pcs/{pc_id:uuid}/history")
+async def get_pc_assignment_history(pc_id: UUID) -> list[PCAssignmentHistory]:
+    """Get assignment history for a specific PC."""
+    if pc_id not in pcs:
+        raise NotFoundException(detail=f"PC with ID {pc_id} not found")
+    return [h for h in pc_assignment_histories.values() if h.pc_id == pc_id]
+
+
+@get("/pcs/{pc_id:uuid}/history/view")
+async def view_pc_assignment_history(pc_id: UUID) -> Template:
+    """View assignment history for a specific PC in HTML."""
+    if pc_id not in pcs:
+        raise NotFoundException(detail=f"PC with ID {pc_id} not found")
+    histories = [h for h in pc_assignment_histories.values() if h.pc_id == pc_id]
+    histories.sort(key=lambda h: h.assigned_at, reverse=True)
+    return Template(
+        template_name="pc_history.html",
+        context={
+            "pc": pcs[pc_id],
+            "histories": histories,
+            "employees": employees,
+        },
+    )
 
 
 # Employee REST API endpoints
@@ -389,6 +439,8 @@ def create_app() -> Litestar:
             show_edit_form,
             edit_pc,
             delete_pc_form,
+            get_pc_assignment_history,
+            view_pc_assignment_history,
             create_employee,
             list_employees,
             get_employee,

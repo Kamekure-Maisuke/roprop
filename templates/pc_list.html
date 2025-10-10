@@ -69,6 +69,19 @@
             .delete-btn:hover {
                 background-color: #da190b;
             }
+            .history-btn {
+                background-color: #ff9800;
+                color: white;
+                padding: 5px 10px;
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;
+                text-decoration: none;
+                font-size: 14px;
+            }
+            .history-btn:hover {
+                background-color: #e68900;
+            }
             .add-link {
                 display: inline-block;
                 margin-bottom: 20px;
@@ -168,6 +181,9 @@
                         <div class="action-buttons">
                             <a href="/pcs/{{ pc.id }}/edit" class="edit-btn"
                                 >編集</a
+                            >
+                            <a href="/pcs/{{ pc.id }}/history/view" class="history-btn"
+                                >履歴</a
                             >
                             <form
                                 method="POST"
