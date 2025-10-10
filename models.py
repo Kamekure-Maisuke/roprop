@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from datetime import datetime
 from uuid import UUID, uuid4
 
 
@@ -23,3 +24,12 @@ class PC:
 class Department:
     id: UUID = field(default_factory=uuid4)
     name: str = ""
+
+
+@dataclass
+class PCAssignmentHistory:
+    id: UUID = field(default_factory=uuid4)
+    pc_id: UUID = field(default_factory=uuid4)
+    employee_id: UUID | None = None
+    assigned_at: datetime = field(default_factory=datetime.now)
+    notes: str = ""
