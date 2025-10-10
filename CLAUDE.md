@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-Litestar(Python Webフレームワーク)を使用したPC管理アプリケーションです。PCレコードのCRUD操作を行うためのREST APIエンドポイントとHTMLベースのWebインターフェースの両方を提供します。データは一旦ディクショナリを使用してメモリ内に保存されます。
+Litestar(Python Webフレームワーク)を使用したPC・社員管理アプリケーションです。PC及び社員(Employee)レコードのCRUD操作を行うためのREST APIエンドポイントとHTMLベースのWebインターフェースの両方を提供します。PCは社員に割り当てることができます。データはディクショナリを使用してメモリ内に保存されます(サーバー再起動時にリセット)。
 
 ## コマンド
 
@@ -31,36 +31,74 @@ uv run pytest test_main.py::test_create_pc
 - ReDoc: http://localhost:8000/schema
 - Swagger UI: http://localhost:8000/schema/swagger
 
+### 開発用データ投入
+```bash
+# サーバーを起動してから別ターミナルで実行
+# 1. 先に社員データを投入
+uv run seeder/employees.py
+
+# 2. 次にPCデータを投入(社員に割り当てるため)
+uv run seeder/pcs.py
+```
+
 ## アーキテクチャ
 
 ### アプリケーション構造
 
-アプリケーションは3つのメインファイルに分かれています:
+アプリケーションは以下のファイルで構成されています:
 
-1. **models.py**: `PC`データクラスを定義(フィールド: id(UUID), name, model, serial_number, assigned_to)
+1. **models.py**: データモデル定義
+   - `Employee`: 社員情報(id, name, email, department)
+   - `PC`: PC情報(id, name, model, serial_number, assigned_to)
 2. **main.py**: すべてのルートハンドラとアプリケーション設定
 3. **test_main.py**: pytestフィクスチャを使用した包括的なテストスイート
+4. **seeder/**: 開発用データ投入スクリプト
+   - `employees.py`: 17名の社員データを投入
+   - `pcs.py`: 20台のPCデータを投入(一部は社員に割り当て済み)
 
 ### ルート構成
 
 アプリケーションは2つの並行したインターフェースを持ちます:
 
-**REST APIエンドポイント** (`/pcs`):
+**REST APIエンドポイント**:
+
+PC管理:
 - `POST /pcs` - PC作成(201を返す)
 - `GET /pcs` - 全PC一覧取得
 - `GET /pcs/{pc_id}` - 特定PC取得
 - `PUT /pcs/{pc_id}` - PC更新
 - `DELETE /pcs/{pc_id}` - PC削除(204を返す)
 
+社員管理:
+- `POST /employees` - 社員作成(201を返す)
+- `GET /employees` - 全社員一覧取得
+- `GET /employees/{employee_id}` - 特定社員取得
+- `PUT /employees/{employee_id}` - 社員更新
+- `DELETE /employees/{employee_id}` - 社員削除(204を返す)
+
 **HTMLフォームベースエンドポイント**:
+
+PC管理:
 - `GET /pcs/view` - 全PCをHTMLテーブルで表示
 - `GET /pcs/register` + `POST /pcs/register` - 登録フォーム
 - `GET /pcs/{pc_id}/edit` + `POST /pcs/{pc_id}/edit` - 編集フォーム
 - `POST /pcs/{pc_id}/delete` - フォーム経由で削除
 
+社員管理:
+- `GET /employees/view` - 全社員をHTMLテーブルで表示
+- `GET /employees/register` + `POST /employees/register` - 登録フォーム
+- `GET /employees/{employee_id}/edit` + `POST /employees/{employee_id}/edit` - 編集フォーム
+- `POST /employees/{employee_id}/delete` - フォーム経由で削除
+
 ### データストレージ
 
-PCはモジュールレベルのディクショナリに保存されます: `pcs: dict[UUID, PC] = {}`。これはインメモリのみでサーバー再起動時にリセットされます。テストスイートは`autouse=True`のpytestフィクスチャを使用して各テストの前後でこのディクショナリをクリアします。
+データはモジュールレベルのディクショナリに保存されます:
+- `pcs: dict[UUID, PC] = {}`
+- `employees: dict[UUID, Employee] = {}`
+
+これらはインメモリのみでサーバー再起動時にリセットされます。テストスイートは`autouse=True`のpytestフィクスチャを使用して各テストの前後でこれらのディクショナリをクリアします。
+
+PCの`assigned_to`フィールドは`Employee`のUUID(またはNone)を保持し、PC-社員間の関係を表現します。
 
 ### テンプレートシステム
 
