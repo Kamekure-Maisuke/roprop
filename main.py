@@ -425,6 +425,51 @@ async def delete_department_form(department_id: UUID) -> Redirect:
     return Redirect(path="/departments/view")
 
 
+# Dashboard endpoint
+@get("/dashboard")
+async def view_dashboard() -> Template:
+    """View resource statistics dashboard."""
+    # Calculate department statistics
+    dept_stats: dict[UUID, dict[str, str | int]] = {}
+    unassigned_pc_count = 0
+
+    for dept in departments.values():
+        dept_stats[dept.id] = {
+            "name": dept.name,
+            "employee_count": 0,
+            "pc_count": 0,
+        }
+
+    # Count employees per department
+    for emp in employees.values():
+        if emp.department_id and emp.department_id in dept_stats:
+            count = dept_stats[emp.department_id]["employee_count"]
+            assert isinstance(count, int)
+            dept_stats[emp.department_id]["employee_count"] = count + 1
+
+    # Count PCs per department (via assigned employees)
+    for pc in pcs.values():
+        if pc.assigned_to:
+            emp = employees.get(pc.assigned_to)
+            if emp and emp.department_id and emp.department_id in dept_stats:
+                count = dept_stats[emp.department_id]["pc_count"]
+                assert isinstance(count, int)
+                dept_stats[emp.department_id]["pc_count"] = count + 1
+        else:
+            unassigned_pc_count += 1
+
+    return Template(
+        template_name="dashboard.html",
+        context={
+            "dept_stats": list(dept_stats.values()),
+            "unassigned_pc_count": unassigned_pc_count,
+            "total_pcs": len(pcs),
+            "total_employees": len(employees),
+            "total_departments": len(departments),
+        },
+    )
+
+
 def create_app() -> Litestar:
     return Litestar(
         route_handlers=[
@@ -463,6 +508,7 @@ def create_app() -> Litestar:
             show_department_edit_form,
             edit_department_form,
             delete_department_form,
+            view_dashboard,
         ],
         template_config=TemplateConfig(
             directory=Path("templates"),
