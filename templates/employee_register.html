@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PC登録画面</title>
+        <title>社員登録画面</title>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -23,7 +23,8 @@
                 font-weight: bold;
                 color: #555;
             }
-            input[type="text"] {
+            input[type="text"],
+            input[type="email"] {
                 width: 100%;
                 padding: 8px;
                 border: 1px solid #ddd;
@@ -61,58 +62,31 @@
         </style>
     </head>
     <body>
-        <h1>PC登録</h1>
+        <h1>社員登録</h1>
 
         {% if success %}
-        <div class="success-message">PCを登録しました。</div>
+        <div class="success-message">社員を登録しました。</div>
         {% endif %}
 
-        <form method="POST" action="/pcs/register">
+        <form method="POST" action="/employees/register">
             <div class="form-group">
                 <label for="name">名前:</label>
                 <input type="text" id="name" name="name" required />
             </div>
 
             <div class="form-group">
-                <label for="model">モデル:</label>
-                <input type="text" id="model" name="model" required />
+                <label for="email">メールアドレス:</label>
+                <input type="email" id="email" name="email" required />
             </div>
 
             <div class="form-group">
-                <label for="serial_number">シリアル番号:</label>
-                <input
-                    type="text"
-                    id="serial_number"
-                    name="serial_number"
-                    required
-                />
-            </div>
-
-            <div class="form-group">
-                <label for="assigned_to">割り当て先:</label>
-                <select
-                    id="assigned_to"
-                    name="assigned_to"
-                    style="
-                        width: 100%;
-                        padding: 8px;
-                        border: 1px solid #ddd;
-                        border-radius: 4px;
-                        box-sizing: border-box;
-                    "
-                >
-                    <option value="">未割り当て</option>
-                    {% for employee in employees %}
-                    <option value="{{ employee.id }}">
-                        {{ employee.name }} ({{ employee.department }})
-                    </option>
-                    {% endfor %}
-                </select>
+                <label for="department">部署:</label>
+                <input type="text" id="department" name="department" required />
             </div>
 
             <button type="submit">登録</button>
         </form>
 
-        <a href="/pcs/view" class="back-link">← 一覧に戻る</a>
+        <a href="/employees/view" class="back-link">← 一覧に戻る</a>
     </body>
 </html>
