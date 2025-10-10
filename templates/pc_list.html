@@ -1,213 +1,105 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-theme="light">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>PC管理画面</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
         <style>
-            body {
-                font-family: Arial, sans-serif;
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 20px;
-            }
-            h1 {
-                color: #333;
-            }
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 20px;
-            }
-            th,
-            td {
-                border: 1px solid #ddd;
-                padding: 12px;
-                text-align: left;
-            }
-            th {
-                background-color: #4caf50;
-                color: white;
-            }
-            tr:nth-child(even) {
-                background-color: #f2f2f2;
-            }
-            tr:hover {
-                background-color: #ddd;
-            }
-            .empty-message {
-                text-align: center;
-                padding: 20px;
-                color: #666;
-            }
             .action-buttons {
                 display: flex;
-                gap: 5px;
+                gap: 0.5rem;
             }
-            .edit-btn {
-                background-color: #2196f3;
-                color: white;
-                padding: 5px 10px;
-                border: none;
-                border-radius: 3px;
-                cursor: pointer;
-                text-decoration: none;
-                font-size: 14px;
-            }
-            .edit-btn:hover {
-                background-color: #0b7dda;
-            }
-            .delete-btn {
-                background-color: #f44336;
-                color: white;
-                padding: 5px 10px;
-                border: none;
-                border-radius: 3px;
-                cursor: pointer;
-                font-size: 14px;
-            }
-            .delete-btn:hover {
-                background-color: #da190b;
-            }
-            .history-btn {
-                background-color: #ff9800;
-                color: white;
-                padding: 5px 10px;
-                border: none;
-                border-radius: 3px;
-                cursor: pointer;
-                text-decoration: none;
-                font-size: 14px;
-            }
-            .history-btn:hover {
-                background-color: #e68900;
-            }
-            .add-link {
-                display: inline-block;
-                margin-bottom: 20px;
-                background-color: #4caf50;
-                color: white;
-                padding: 10px 20px;
-                text-decoration: none;
-                border-radius: 4px;
-            }
-            .add-link:hover {
-                background-color: #45a049;
-            }
-            .search-box {
-                margin: 20px 0;
-            }
-            .search-box input {
-                width: 100%;
-                max-width: 400px;
-                padding: 10px;
-                font-size: 16px;
-                border: 2px solid #ddd;
-                border-radius: 4px;
-                box-sizing: border-box;
-            }
-            .search-box input:focus {
-                outline: none;
-                border-color: #4caf50;
+            .action-buttons a, .action-buttons button {
+                margin: 0;
+                padding: 0.25rem 0.75rem;
+                font-size: 0.875rem;
             }
             .no-results {
                 text-align: center;
-                padding: 20px;
-                color: #999;
+                padding: 1rem;
                 display: none;
-            }
-            .nav-links {
-                margin-bottom: 20px;
-            }
-            .nav-link {
-                display: inline-block;
-                margin-right: 10px;
-                padding: 8px 16px;
-                background-color: #607d8b;
-                color: white;
-                text-decoration: none;
-                border-radius: 4px;
-            }
-            .nav-link:hover {
-                background-color: #546e7a;
             }
         </style>
     </head>
     <body>
-        <div class="nav-links">
-            <a href="/dashboard" class="nav-link">ダッシュボード</a>
-            <a href="/pcs/view" class="nav-link">PC管理</a>
-            <a href="/employees/view" class="nav-link">社員管理</a>
-            <a href="/departments/view" class="nav-link">部署管理</a>
-        </div>
+        <nav>
+            <ul>
+                <li><strong>リソース管理システム</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/dashboard">ダッシュボード</a></li>
+                <li><a href="/pcs/view">PC管理</a></li>
+                <li><a href="/employees/view">社員管理</a></li>
+                <li><a href="/departments/view">部署管理</a></li>
+            </ul>
+        </nav>
+        <main class="container">
 
         <h1>PC管理画面</h1>
 
-        <a href="/pcs/register" class="add-link">新規登録</a>
+        <a href="/pcs/register" role="button">新規登録</a>
 
         {% if pcs %}
-        <div class="search-box">
-            <input
-                type="text"
-                id="searchInput"
-                placeholder="名前、モデル、シリアル番号、割り当て先で検索..."
-            />
-        </div>
+        <input
+            type="search"
+            id="searchInput"
+            placeholder="名前、モデル、シリアル番号、割り当て先で検索..."
+        />
         <div class="no-results" id="noResults">検索結果が見つかりません</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>名前</th>
-                    <th>モデル</th>
-                    <th>シリアル番号</th>
-                    <th>割り当て先</th>
-                    <th>操作</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for pc in pcs %}
-                <tr>
-                    <td>{{ pc.id }}</td>
-                    <td>{{ pc.name }}</td>
-                    <td>{{ pc.model }}</td>
-                    <td>{{ pc.serial_number }}</td>
-                    <td>
-                        {% if pc.assigned_to and pc.assigned_to in employees %}
-                        {{ employees[pc.assigned_to].name }} {% elif
-                        pc.assigned_to %} (不明なID: {{ pc.assigned_to }}) {%
-                        else %} 未割り当て {% endif %}
-                    </td>
-                    <td>
-                        <div class="action-buttons">
-                            <a href="/pcs/{{ pc.id }}/edit" class="edit-btn"
-                                >編集</a
-                            >
-                            <a href="/pcs/{{ pc.id }}/history/view" class="history-btn"
-                                >履歴</a
-                            >
-                            <form
-                                method="POST"
-                                action="/pcs/{{ pc.id }}/delete"
-                                style="margin: 0"
-                            >
-                                <button
-                                    type="submit"
-                                    class="delete-btn"
-                                    onclick="return confirm('本当に削除しますか？')"
+        <figure>
+            <table role="grid">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>名前</th>
+                        <th>モデル</th>
+                        <th>シリアル番号</th>
+                        <th>割り当て先</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pc in pcs %}
+                    <tr>
+                        <td>{{ pc.id }}</td>
+                        <td>{{ pc.name }}</td>
+                        <td>{{ pc.model }}</td>
+                        <td>{{ pc.serial_number }}</td>
+                        <td>
+                            {% if pc.assigned_to and pc.assigned_to in employees %}
+                            {{ employees[pc.assigned_to].name }} {% elif
+                            pc.assigned_to %} (不明なID: {{ pc.assigned_to }}) {%
+                            else %} 未割り当て {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="/pcs/{{ pc.id }}/edit" role="button" class="secondary">編集</a>
+                                <a href="/pcs/{{ pc.id }}/history/view" role="button" class="contrast">履歴</a>
+                                <form
+                                    method="POST"
+                                    action="/pcs/{{ pc.id }}/delete"
+                                    style="margin: 0"
                                 >
-                                    削除
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                                    <button
+                                        type="submit"
+                                        class="secondary"
+                                        onclick="return confirm('本当に削除しますか？')"
+                                    >
+                                        削除
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </figure>
         {% else %}
-        <p class="empty-message">登録されているPCはありません。</p>
+        <p style="text-align: center;">登録されているPCはありません。</p>
         {% endif %}
+        </main>
 
         <script>
             const search = () => {

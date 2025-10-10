@@ -1,95 +1,30 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" data-theme="light">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>PC割り当て履歴 - {{ pc.name }}</title>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 20px;
-            }
-            h1 {
-                color: #333;
-            }
-            .pc-info {
-                background-color: #f5f5f5;
-                padding: 15px;
-                border-radius: 5px;
-                margin-bottom: 20px;
-            }
-            .pc-info p {
-                margin: 5px 0;
-            }
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 20px;
-            }
-            th,
-            td {
-                border: 1px solid #ddd;
-                padding: 12px;
-                text-align: left;
-            }
-            th {
-                background-color: #4caf50;
-                color: white;
-            }
-            tr:nth-child(even) {
-                background-color: #f2f2f2;
-            }
-            tr:hover {
-                background-color: #ddd;
-            }
-            .empty-message {
-                text-align: center;
-                padding: 20px;
-                color: #666;
-            }
-            .back-link {
-                display: inline-block;
-                margin-bottom: 20px;
-                background-color: #607d8b;
-                color: white;
-                padding: 10px 20px;
-                text-decoration: none;
-                border-radius: 4px;
-            }
-            .back-link:hover {
-                background-color: #546e7a;
-            }
-            .nav-links {
-                margin-bottom: 20px;
-            }
-            .nav-link {
-                display: inline-block;
-                margin-right: 10px;
-                padding: 8px 16px;
-                background-color: #607d8b;
-                color: white;
-                text-decoration: none;
-                border-radius: 4px;
-            }
-            .nav-link:hover {
-                background-color: #546e7a;
-            }
-        </style>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     </head>
     <body>
-        <div class="nav-links">
-            <a href="/pcs/view" class="nav-link">PC管理</a>
-            <a href="/employees/view" class="nav-link">社員管理</a>
-            <a href="/departments/view" class="nav-link">部署管理</a>
-        </div>
+        <nav>
+            <ul>
+                <li><strong>リソース管理システム</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/dashboard">ダッシュボード</a></li>
+                <li><a href="/pcs/view">PC管理</a></li>
+                <li><a href="/employees/view">社員管理</a></li>
+                <li><a href="/departments/view">部署管理</a></li>
+            </ul>
+        </nav>
+        <main class="container">
 
-        <a href="/pcs/view" class="back-link">← PC一覧に戻る</a>
+        <a href="/pcs/view" role="button" class="secondary">← PC一覧に戻る</a>
 
         <h1>PC割り当て履歴</h1>
 
-        <div class="pc-info">
+        <article>
             <p><strong>PC名:</strong> {{ pc.name }}</p>
             <p><strong>モデル:</strong> {{ pc.model }}</p>
             <p><strong>シリアル番号:</strong> {{ pc.serial_number }}</p>
@@ -103,35 +38,38 @@
                 未割り当て
                 {% endif %}
             </p>
-        </div>
+        </article>
 
         {% if histories %}
-        <table>
-            <thead>
-                <tr>
-                    <th>割り当て日時</th>
-                    <th>割り当て先</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for history in histories %}
-                <tr>
-                    <td>{{ history.assigned_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td>
-                        {% if history.employee_id and history.employee_id in employees %}
-                        {{ employees[history.employee_id].name }}
-                        {% elif history.employee_id %}
-                        (不明なID: {{ history.employee_id }})
-                        {% else %}
-                        未割り当て
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <figure>
+            <table>
+                <thead>
+                    <tr>
+                        <th>割り当て日時</th>
+                        <th>割り当て先</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for history in histories %}
+                    <tr>
+                        <td>{{ history.assigned_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            {% if history.employee_id and history.employee_id in employees %}
+                            {{ employees[history.employee_id].name }}
+                            {% elif history.employee_id %}
+                            (不明なID: {{ history.employee_id }})
+                            {% else %}
+                            未割り当て
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </figure>
         {% else %}
-        <p class="empty-message">割り当て履歴はありません。</p>
+        <p style="text-align: center;">割り当て履歴はありません。</p>
         {% endif %}
+        </main>
     </body>
 </html>
