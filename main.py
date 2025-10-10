@@ -198,6 +198,30 @@ async def view_pc_assignment_history(pc_id: UUID) -> Template:
     )
 
 
+@get("/history/view")
+async def view_all_assignment_history() -> Template:
+    """View all PC assignment history in HTML."""
+    histories = list(pc_assignment_histories.values())
+    histories.sort(key=lambda h: h.assigned_at, reverse=True)
+    return Template(
+        template_name="assignment_history.html",
+        context={
+            "histories": histories,
+            "pcs": pcs,
+            "employees": employees,
+            "departments": departments,
+        },
+    )
+
+
+@get("/history")
+async def list_all_assignment_history() -> list[PCAssignmentHistory]:
+    """Get all PC assignment history."""
+    return sorted(
+        pc_assignment_histories.values(), key=lambda h: h.assigned_at, reverse=True
+    )
+
+
 # Employee REST API endpoints
 @post("/employees", status_code=HTTP_201_CREATED)
 async def create_employee(data: Employee) -> Employee:
@@ -486,6 +510,8 @@ def create_app() -> Litestar:
             delete_pc_form,
             get_pc_assignment_history,
             view_pc_assignment_history,
+            view_all_assignment_history,
+            list_all_assignment_history,
             create_employee,
             list_employees,
             get_employee,

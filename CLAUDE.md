@@ -4,136 +4,51 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## プロジェクト概要
 
-Litestar(Python Webフレームワーク)を使用したPC・社員・部署管理アプリケーションです。PC、社員(Employee)、部署(Department)のCRUD操作を行うためのREST APIエンドポイントとHTMLベースのWebインターフェースの両方を提供します。PCは社員に割り当て可能で、社員は部署に所属します。データはディクショナリを使用してメモリ内に保存されます(サーバー再起動時にリセット)。
+Litestar(Python)を使用したPC・社員・部署管理アプリ。REST APIとHTMLフォームの両方でCRUD操作を提供。データはインメモリ(再起動でリセット)。
+
+リレーション: PC→社員(assigned_to)、社員→部署(department_id)、PC割り当て履歴(PCAssignmentHistory)
 
 ## コマンド
 
-### 開発サーバー実行
 ```bash
+# 開発サーバー
 uv run uvicorn main:app --reload
-```
 
-### 型チェック(Lint)
-```bash
+# Lint/テスト
 uv run basedpyright
-```
-
-### テスト
-```bash
-# 全テスト実行
 uv run pytest
-
-# 特定のテスト実行
 uv run pytest test_main.py::test_create_pc
-```
 
-### APIドキュメント
-- ReDoc: http://localhost:8000/schema
-- Swagger UI: http://localhost:8000/schema/swagger
-
-### 開発用データ投入
-```bash
-# サーバーを起動してから別ターミナルで実行
-# 1. 先に部署データを投入
+# 開発データ投入(順序重要)
 uv run seeder/departments.py
-
-# 2. 次に社員データを投入(部署に割り当てるため)
 uv run seeder/employees.py
-
-# 3. 最後にPCデータを投入(社員に割り当てるため)
 uv run seeder/pcs.py
 ```
 
+APIドキュメント: http://localhost:8000/schema
+
 ## アーキテクチャ
 
-### アプリケーション構造
+**ファイル構成**:
+- `models.py`: `Employee`, `PC`, `Department`, `PCAssignmentHistory`
+- `main.py`: 全ルートハンドラ + `create_app()`
+- `test_main.py`: `autouse=True`フィクスチャでストレージをクリア
+- `seeder/`: 開発データ投入スクリプト
 
-アプリケーションは以下のファイルで構成されています:
+**主要ルート**:
+- REST API: `/pcs`, `/employees`, `/departments` (POST/GET/PUT/DELETE)
+- PC履歴: `GET /pcs/{pc_id}/history` (API), `/pcs/{pc_id}/history/view` (HTML)
+- ダッシュボード: `GET /dashboard` - 部署別統計表示
+- HTML: `/{resource}/view`, `/{resource}/register`, `/{resource}/{id}/edit`, `/{resource}/{id}/delete`
 
-1. **models.py**: データモデル定義
-   - `Employee`: 社員情報(id, name, email, department_id)
-   - `PC`: PC情報(id, name, model, serial_number, assigned_to)
-   - `Department`: 部署情報(id, name)
-2. **main.py**: すべてのルートハンドラとアプリケーション設定
-3. **test_main.py**: pytestフィクスチャを使用した包括的なテストスイート
-4. **seeder/**: 開発用データ投入スクリプト
-   - `departments.py`: 5つの部署データを投入
-   - `employees.py`: 17名の社員データを投入(部署に割り当て済み)
-   - `pcs.py`: 20台のPCデータを投入(一部は社員に割り当て済み)
+**データストレージ** (main.py内のモジュールレベルdict):
+```python
+pcs: dict[UUID, PC] = {}
+employees: dict[UUID, Employee] = {}
+departments: dict[UUID, Department] = {}
+pc_assignment_histories: dict[UUID, PCAssignmentHistory] = {}
+```
 
-### ルート構成
+**PC割り当て履歴**: PC作成/更新時に`assigned_to`が変更されたら自動記録
 
-アプリケーションは2つの並行したインターフェースを持ちます:
-
-**REST APIエンドポイント**:
-
-PC管理:
-- `POST /pcs` - PC作成(201を返す)
-- `GET /pcs` - 全PC一覧取得
-- `GET /pcs/{pc_id}` - 特定PC取得
-- `PUT /pcs/{pc_id}` - PC更新
-- `DELETE /pcs/{pc_id}` - PC削除(204を返す)
-
-社員管理:
-- `POST /employees` - 社員作成(201を返す)
-- `GET /employees` - 全社員一覧取得
-- `GET /employees/{employee_id}` - 特定社員取得
-- `PUT /employees/{employee_id}` - 社員更新
-- `DELETE /employees/{employee_id}` - 社員削除(204を返す)
-
-部署管理:
-- `POST /departments` - 部署作成(201を返す)
-- `GET /departments` - 全部署一覧取得
-- `GET /departments/{department_id}` - 特定部署取得
-- `PUT /departments/{department_id}` - 部署更新
-- `DELETE /departments/{department_id}` - 部署削除(204を返す)
-
-**HTMLフォームベースエンドポイント**:
-
-PC管理:
-- `GET /pcs/view` - 全PCをHTMLテーブルで表示
-- `GET /pcs/register` + `POST /pcs/register` - 登録フォーム
-- `GET /pcs/{pc_id}/edit` + `POST /pcs/{pc_id}/edit` - 編集フォーム
-- `POST /pcs/{pc_id}/delete` - フォーム経由で削除
-
-社員管理:
-- `GET /employees/view` - 全社員をHTMLテーブルで表示
-- `GET /employees/register` + `POST /employees/register` - 登録フォーム
-- `GET /employees/{employee_id}/edit` + `POST /employees/{employee_id}/edit` - 編集フォーム
-- `POST /employees/{employee_id}/delete` - フォーム経由で削除
-
-部署管理:
-- `GET /departments/view` - 全部署をHTMLテーブルで表示
-- `GET /departments/register` + `POST /departments/register` - 登録フォーム
-- `GET /departments/{department_id}/edit` + `POST /departments/{department_id}/edit` - 編集フォーム
-- `POST /departments/{department_id}/delete` - フォーム経由で削除
-
-### データストレージとリレーション
-
-データはモジュールレベルのディクショナリに保存されます:
-- `pcs: dict[UUID, PC] = {}`
-- `employees: dict[UUID, Employee] = {}`
-- `departments: dict[UUID, Department] = {}`
-
-これらはインメモリのみでサーバー再起動時にリセットされます。テストスイートは`autouse=True`のpytestフィクスチャを使用して各テストの前後でこれらのディクショナリをクリアします。
-
-リレーション:
-- PCの`assigned_to`フィールドは`Employee`のUUID(またはNone)を保持し、PC-社員間の関係を表現
-- 社員の`department_id`フィールドは`Department`のUUID(またはNone)を保持し、社員-部署間の関係を表現
-- HTMLテンプレートでは`departments`ディクショナリを使用して部署IDから部署名を表示
-
-### テンプレートシステム
-
-`templates/`ディレクトリに保存されたJinja2テンプレート(`JinjaTemplateEngine`経由)を使用します。HTMLルートは`Template`オブジェクトまたは`Redirect`レスポンスを返します。
-
-### アプリケーションファクトリ
-
-`create_app()`関数は設定済みのLitestarインスタンスを返します。すべてのルートハンドラは`route_handlers`パラメータに明示的にリストされています。
-
-## CI/CD
-
-GitHub Actions CIはmain以外のすべてのブランチで実行されます:
-- Lintジョブ: `basedpyright`を実行
-- Testジョブ: `pytest`を実行
-
-両方のジョブはキャッシュを有効にした`uv`を依存関係管理に使用します。
+**テンプレート**: Jinja2 (`templates/`ディレクトリ)、HTMLルートは`Template`または`Redirect`を返す
