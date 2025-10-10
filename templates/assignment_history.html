@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ja" data-theme="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>PC割り当て履歴管理</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+        <style>
+            .filter-section {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+                gap: 1rem;
+                margin-bottom: 1rem;
+            }
+            .stats-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            .stat-card {
+                padding: 1rem;
+                background: var(--card-background-color);
+                border-radius: var(--border-radius);
+                text-align: center;
+            }
+            .stat-number {
+                font-size: 2rem;
+                font-weight: bold;
+                color: var(--primary);
+            }
+            .stat-label {
+                font-size: 0.875rem;
+                color: var(--muted-color);
+                margin-top: 0.25rem;
+            }
+            .no-results {
+                text-align: center;
+                padding: 2rem;
+                display: none;
+            }
+            .action-link {
+                padding: 0.25rem 0.75rem;
+                font-size: 0.875rem;
+                text-decoration: none;
+            }
+            tbody tr {
+                cursor: pointer;
+                transition: background-color 0.2s;
+            }
+            tbody tr:hover {
+                background-color: var(--table-row-stripped-background-color);
+            }
+            .badge {
+                display: inline-block;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+                border-radius: 0.25rem;
+                background: var(--secondary);
+                color: var(--secondary-inverse);
+            }
+            .badge.unassigned {
+                background: var(--muted-color);
+            }
+        </style>
+    </head>
+    <body>
+        <nav>
+            <ul>
+                <li><strong>リソース管理システム</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/dashboard">ダッシュボード</a></li>
+                <li><a href="/pcs/view">PC管理</a></li>
+                <li><a href="/employees/view">社員管理</a></li>
+                <li><a href="/departments/view">部署管理</a></li>
+                <li><a href="/history/view" aria-current="page">履歴管理</a></li>
+            </ul>
+        </nav>
+        <main class="container">
+
+        <h1>PC割り当て履歴管理</h1>
+
+        <!-- 統計情報 -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ histories|length }}</div>
+                <div class="stat-label">総履歴件数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ pcs|length }}</div>
+                <div class="stat-label">登録PC数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ employees|length }}</div>
+                <div class="stat-label">登録社員数</div>
+            </div>
+        </div>
+
+        {% if histories %}
+        <!-- フィルタ・検索セクション -->
+        <div class="filter-section">
+            <input
+                type="search"
+                id="searchInput"
+                placeholder="PC名、社員名、部署名で検索..."
+            />
+            <select id="pcFilter">
+                <option value="">全PC</option>
+                {% for pc in pcs.values() %}
+                <option value="{{ pc.id }}">{{ pc.name }} ({{ pc.model }})</option>
+                {% endfor %}
+            </select>
+            <select id="employeeFilter">
+                <option value="">全社員</option>
+                <option value="unassigned">未割り当て</option>
+                {% for emp in employees.values() %}
+                <option value="{{ emp.id }}">{{ emp.name }}</option>
+                {% endfor %}
+            </select>
+            <select id="departmentFilter">
+                <option value="">全部署</option>
+                {% for dept in departments.values() %}
+                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="no-results" id="noResults">
+            <p>検索条件に一致する履歴が見つかりません</p>
+        </div>
+
+        <figure>
+            <table role="grid">
+                <thead>
+                    <tr>
+                        <th>割り当て日時</th>
+                        <th>PC名</th>
+                        <th>PCモデル</th>
+                        <th>割り当て先社員</th>
+                        <th>部署</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    {% for history in histories %}
+                    <tr
+                        data-pc-id="{{ history.pc_id }}"
+                        data-employee-id="{{ history.employee_id or 'unassigned' }}"
+                        data-department-id="{% if history.employee_id and history.employee_id in employees and employees[history.employee_id].department_id %}{{ employees[history.employee_id].department_id }}{% endif %}"
+                    >
+                        <td>{{ history.assigned_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                        <td>
+                            {% if history.pc_id in pcs %}
+                            {{ pcs[history.pc_id].name }}
+                            {% else %}
+                            <span style="color: var(--muted-color);">(削除済み)</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if history.pc_id in pcs %}
+                            {{ pcs[history.pc_id].model }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if history.employee_id and history.employee_id in employees %}
+                            {{ employees[history.employee_id].name }}
+                            {% elif history.employee_id %}
+                            <span style="color: var(--muted-color);">(削除済み)</span>
+                            {% else %}
+                            <span class="badge unassigned">未割り当て</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if history.employee_id and history.employee_id in employees and employees[history.employee_id].department_id %}
+                                {% if employees[history.employee_id].department_id in departments %}
+                                {{ departments[employees[history.employee_id].department_id].name }}
+                                {% else %}
+                                <span style="color: var(--muted-color);">(削除済み)</span>
+                                {% endif %}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if history.pc_id in pcs %}
+                            <a href="/pcs/{{ history.pc_id }}/history/view" role="button" class="secondary action-link">
+                                PC詳細履歴
+                            </a>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </figure>
+
+        <p style="text-align: center; color: var(--muted-color); margin-top: 1rem;">
+            表示件数: <strong id="visibleCount">{{ histories|length }}</strong> / {{ histories|length }}
+        </p>
+        {% else %}
+        <p style="text-align: center;">割り当て履歴はまだありません。</p>
+        {% endif %}
+        </main>
+
+        <script>
+            const filterAndSearch = () => {
+                const searchQuery = document.getElementById("searchInput").value.toLowerCase();
+                const pcFilter = document.getElementById("pcFilter").value;
+                const employeeFilter = document.getElementById("employeeFilter").value;
+                const departmentFilter = document.getElementById("departmentFilter").value;
+
+                const rows = document.querySelectorAll("#historyTableBody tr");
+                let visibleCount = 0;
+
+                rows.forEach((row) => {
+                    const pcId = row.dataset.pcId;
+                    const employeeId = row.dataset.employeeId;
+                    const departmentId = row.dataset.departmentId;
+
+                    // テキスト検索
+                    const text = Array.from(row.querySelectorAll("td"))
+                        .slice(0, 5)
+                        .map((td) => td.textContent.toLowerCase())
+                        .join(" ");
+
+                    const matchesSearch = !searchQuery || text.includes(searchQuery);
+                    const matchesPc = !pcFilter || pcId === pcFilter;
+                    const matchesEmployee = !employeeFilter || employeeId === employeeFilter;
+                    const matchesDepartment = !departmentFilter || departmentId === departmentFilter;
+
+                    const isVisible = matchesSearch && matchesPc && matchesEmployee && matchesDepartment;
+                    row.style.display = isVisible ? "" : "none";
+                    if (isVisible) visibleCount++;
+                });
+
+                // 結果表示の更新
+                const totalCount = rows.length;
+                const hasFilters = searchQuery || pcFilter || employeeFilter || departmentFilter;
+
+                document.getElementById("noResults").style.display =
+                    visibleCount === 0 && hasFilters ? "block" : "none";
+                document.getElementById("visibleCount").textContent = visibleCount;
+            };
+
+            // イベントリスナー設定
+            document.getElementById("searchInput")?.addEventListener("input", filterAndSearch);
+            document.getElementById("pcFilter")?.addEventListener("change", filterAndSearch);
+            document.getElementById("employeeFilter")?.addEventListener("change", filterAndSearch);
+            document.getElementById("departmentFilter")?.addEventListener("change", filterAndSearch);
+        </script>
+    </body>
+</html>
