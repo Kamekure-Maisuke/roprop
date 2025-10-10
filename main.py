@@ -10,11 +10,12 @@ from litestar.response import Template, Redirect
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from litestar.template.config import TemplateConfig
 
-from models import PC
+from models import PC, Employee
 
 
 # In-memory storage
 pcs: dict[UUID, PC] = {}
+employees: dict[UUID, Employee] = {}
 
 
 @post("/pcs", status_code=HTTP_201_CREATED)
@@ -59,13 +60,19 @@ async def delete_pc(pc_id: UUID) -> None:
 @get("/pcs/view")
 async def view_pcs() -> Template:
     """View all PCs in HTML."""
-    return Template(template_name="pc_list.html", context={"pcs": list(pcs.values())})
+    return Template(
+        template_name="pc_list.html",
+        context={"pcs": list(pcs.values()), "employees": employees},
+    )
 
 
 @get("/pcs/register")
 async def show_register_form() -> Template:
     """Show PC registration form."""
-    return Template(template_name="pc_register.html", context={"success": False})
+    return Template(
+        template_name="pc_register.html",
+        context={"success": False, "employees": list(employees.values())},
+    )
 
 
 @post("/pcs/register")
@@ -73,14 +80,18 @@ async def register_pc(
     data: Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)],
 ) -> Template:
     """Register a new PC from form."""
+    assigned_to = UUID(data["assigned_to"]) if data.get("assigned_to") else None
     pc = PC(
         name=data["name"],
         model=data["model"],
         serial_number=data["serial_number"],
-        assigned_to=data["assigned_to"],
+        assigned_to=assigned_to,
     )
     pcs[pc.id] = pc
-    return Template(template_name="pc_register.html", context={"success": True})
+    return Template(
+        template_name="pc_register.html",
+        context={"success": True, "employees": list(employees.values())},
+    )
 
 
 @get("/pcs/{pc_id:uuid}/edit")
@@ -88,7 +99,10 @@ async def show_edit_form(pc_id: UUID) -> Template:
     """Show PC edit form."""
     if pc_id not in pcs:
         raise NotFoundException(detail=f"PC with ID {pc_id} not found")
-    return Template(template_name="pc_edit.html", context={"pc": pcs[pc_id]})
+    return Template(
+        template_name="pc_edit.html",
+        context={"pc": pcs[pc_id], "employees": list(employees.values())},
+    )
 
 
 @post("/pcs/{pc_id:uuid}/edit")
@@ -100,12 +114,13 @@ async def edit_pc(
     if pc_id not in pcs:
         raise NotFoundException(detail=f"PC with ID {pc_id} not found")
 
+    assigned_to = UUID(data["assigned_to"]) if data.get("assigned_to") else None
     pc = PC(
         id=pc_id,
         name=data["name"],
         model=data["model"],
         serial_number=data["serial_number"],
-        assigned_to=data["assigned_to"],
+        assigned_to=assigned_to,
     )
     pcs[pc_id] = pc
     return Redirect(path="/pcs/view")
@@ -118,6 +133,114 @@ async def delete_pc_form(pc_id: UUID) -> Redirect:
         raise NotFoundException(detail=f"PC with ID {pc_id} not found")
     del pcs[pc_id]
     return Redirect(path="/pcs/view")
+
+
+# Employee REST API endpoints
+@post("/employees", status_code=HTTP_201_CREATED)
+async def create_employee(data: Employee) -> Employee:
+    """Create a new employee."""
+    employees[data.id] = data
+    return data
+
+
+@get("/employees")
+async def list_employees() -> list[Employee]:
+    """Get all employees."""
+    return list(employees.values())
+
+
+@get("/employees/{employee_id:uuid}")
+async def get_employee(employee_id: UUID) -> Employee:
+    """Get a specific employee by ID."""
+    if employee_id not in employees:
+        raise NotFoundException(detail=f"Employee with ID {employee_id} not found")
+    return employees[employee_id]
+
+
+@put("/employees/{employee_id:uuid}")
+async def update_employee(employee_id: UUID, data: Employee) -> Employee:
+    """Update an existing employee."""
+    if employee_id not in employees:
+        raise NotFoundException(detail=f"Employee with ID {employee_id} not found")
+    data.id = employee_id
+    employees[employee_id] = data
+    return data
+
+
+@delete("/employees/{employee_id:uuid}", status_code=HTTP_204_NO_CONTENT)
+async def delete_employee(employee_id: UUID) -> None:
+    """Delete an employee."""
+    if employee_id not in employees:
+        raise NotFoundException(detail=f"Employee with ID {employee_id} not found")
+    del employees[employee_id]
+
+
+# Employee HTML form endpoints
+@get("/employees/view")
+async def view_employees() -> Template:
+    """View all employees in HTML."""
+    return Template(
+        template_name="employee_list.html",
+        context={"employees": list(employees.values())},
+    )
+
+
+@get("/employees/register")
+async def show_employee_register_form() -> Template:
+    """Show employee registration form."""
+    return Template(template_name="employee_register.html", context={"success": False})
+
+
+@post("/employees/register")
+async def register_employee(
+    data: Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)],
+) -> Template:
+    """Register a new employee from form."""
+    employee = Employee(
+        name=data["name"],
+        email=data["email"],
+        department=data["department"],
+    )
+    employees[employee.id] = employee
+    return Template(template_name="employee_register.html", context={"success": True})
+
+
+@get("/employees/{employee_id:uuid}/edit")
+async def show_employee_edit_form(employee_id: UUID) -> Template:
+    """Show employee edit form."""
+    if employee_id not in employees:
+        raise NotFoundException(detail=f"Employee with ID {employee_id} not found")
+    return Template(
+        template_name="employee_edit.html", context={"employee": employees[employee_id]}
+    )
+
+
+@post("/employees/{employee_id:uuid}/edit")
+async def edit_employee_form(
+    employee_id: UUID,
+    data: Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)],
+) -> Redirect:
+    """Update an employee from form."""
+    if employee_id not in employees:
+        raise NotFoundException(detail=f"Employee with ID {employee_id} not found")
+
+    employee = Employee(
+        id=employee_id,
+        name=data["name"],
+        email=data["email"],
+        department=data["department"],
+    )
+    employees[employee_id] = employee
+    return Redirect(path="/employees/view")
+
+
+@post("/employees/{employee_id:uuid}/delete")
+async def delete_employee_form(employee_id: UUID) -> Redirect:
+    """Delete an employee from form."""
+    if employee_id not in employees:
+        raise NotFoundException(detail=f"Employee with ID {employee_id} not found")
+    del employees[employee_id]
+    return Redirect(path="/employees/view")
 
 
 def create_app() -> Litestar:
@@ -134,6 +257,17 @@ def create_app() -> Litestar:
             show_edit_form,
             edit_pc,
             delete_pc_form,
+            create_employee,
+            list_employees,
+            get_employee,
+            update_employee,
+            delete_employee,
+            view_employees,
+            show_employee_register_form,
+            register_employee,
+            show_employee_edit_form,
+            edit_employee_form,
+            delete_employee_form,
         ],
         template_config=TemplateConfig(
             directory=Path("templates"),

@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PC管理画面</title>
+        <title>社員管理画面</title>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -81,28 +81,6 @@
             .add-link:hover {
                 background-color: #45a049;
             }
-            .search-box {
-                margin: 20px 0;
-            }
-            .search-box input {
-                width: 100%;
-                max-width: 400px;
-                padding: 10px;
-                font-size: 16px;
-                border: 2px solid #ddd;
-                border-radius: 4px;
-                box-sizing: border-box;
-            }
-            .search-box input:focus {
-                outline: none;
-                border-color: #4caf50;
-            }
-            .no-results {
-                text-align: center;
-                padding: 20px;
-                color: #999;
-                display: none;
-            }
             .nav-links {
                 margin-bottom: 20px;
             }
@@ -126,51 +104,38 @@
             <a href="/employees/view" class="nav-link">社員管理</a>
         </div>
 
-        <h1>PC管理画面</h1>
+        <h1>社員管理画面</h1>
 
-        <a href="/pcs/register" class="add-link">新規登録</a>
+        <a href="/employees/register" class="add-link">新規登録</a>
 
-        {% if pcs %}
-        <div class="search-box">
-            <input
-                type="text"
-                id="searchInput"
-                placeholder="名前、モデル、シリアル番号、割り当て先で検索..."
-            />
-        </div>
-        <div class="no-results" id="noResults">検索結果が見つかりません</div>
+        {% if employees %}
         <table>
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>名前</th>
-                    <th>モデル</th>
-                    <th>シリアル番号</th>
-                    <th>割り当て先</th>
+                    <th>メールアドレス</th>
+                    <th>部署</th>
                     <th>操作</th>
                 </tr>
             </thead>
             <tbody>
-                {% for pc in pcs %}
+                {% for employee in employees %}
                 <tr>
-                    <td>{{ pc.id }}</td>
-                    <td>{{ pc.name }}</td>
-                    <td>{{ pc.model }}</td>
-                    <td>{{ pc.serial_number }}</td>
-                    <td>
-                        {% if pc.assigned_to and pc.assigned_to in employees %}
-                        {{ employees[pc.assigned_to].name }} {% elif
-                        pc.assigned_to %} (不明なID: {{ pc.assigned_to }}) {%
-                        else %} 未割り当て {% endif %}
-                    </td>
+                    <td>{{ employee.id }}</td>
+                    <td>{{ employee.name }}</td>
+                    <td>{{ employee.email }}</td>
+                    <td>{{ employee.department }}</td>
                     <td>
                         <div class="action-buttons">
-                            <a href="/pcs/{{ pc.id }}/edit" class="edit-btn"
+                            <a
+                                href="/employees/{{ employee.id }}/edit"
+                                class="edit-btn"
                                 >編集</a
                             >
                             <form
                                 method="POST"
-                                action="/pcs/{{ pc.id }}/delete"
+                                action="/employees/{{ employee.id }}/delete"
                                 style="margin: 0"
                             >
                                 <button
@@ -188,35 +153,7 @@
             </tbody>
         </table>
         {% else %}
-        <p class="empty-message">登録されているPCはありません。</p>
+        <p class="empty-message">登録されている社員はありません。</p>
         {% endif %}
-
-        <script>
-            const search = () => {
-                const query = document
-                    .getElementById("searchInput")
-                    .value.toLowerCase();
-                const rows = document.querySelectorAll("tbody tr");
-                let visibleCount = 0;
-
-                rows.forEach((row) => {
-                    const text = Array.from(row.querySelectorAll("td"))
-                        .slice(1, 5)
-                        .map((td) => td.textContent.toLowerCase())
-                        .join(" ");
-
-                    const isVisible = text.includes(query);
-                    row.style.display = isVisible ? "" : "none";
-                    if (isVisible) visibleCount++;
-                });
-
-                document.getElementById("noResults").style.display =
-                    visibleCount === 0 && query ? "block" : "none";
-            };
-
-            document
-                .getElementById("searchInput")
-                ?.addEventListener("input", search);
-        </script>
     </body>
 </html>
