@@ -104,7 +104,10 @@
                     <option value="">未割り当て</option>
                     {% for employee in employees %}
                     <option value="{{ employee.id }}">
-                        {{ employee.name }} ({{ employee.department }})
+                        {{ employee.name }}
+                        {% if employee.department_id and employee.department_id in departments %}
+                        ({{ departments[employee.department_id].name }})
+                        {% endif %}
                     </option>
                     {% endfor %}
                 </select>

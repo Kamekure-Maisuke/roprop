@@ -1,21 +1,17 @@
 from typing import TypedDict, cast
-from uuid import UUID
 
 import httpx
-
-from models import Employee
 
 
 class EmployeeDict(TypedDict):
     id: str
     name: str
     email: str
-    department: str
+    department_id: str | None
 
 
 BASE_URL = "http://localhost:8000"
 
-# 社員名とIDのマッピングを取得
 with httpx.Client() as client:
     response = client.get(f"{BASE_URL}/employees")
     if response.status_code != 200:
@@ -24,17 +20,8 @@ with httpx.Client() as client:
         )
         exit(1)
 
-    employee_data: list[EmployeeDict] = cast(list[EmployeeDict], response.json())
-    employees: list[Employee] = [
-        Employee(
-            id=UUID(emp["id"]),
-            name=emp["name"],
-            email=emp["email"],
-            department=emp["department"],
-        )
-        for emp in employee_data
-    ]
-    employee_map = {emp.name: emp.id for emp in employees}
+    employees = cast(list[EmployeeDict], response.json())
+    employee_map = {emp["name"]: emp["id"] for emp in employees}
 
 pcs = [
     {

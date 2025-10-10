@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>社員管理画面</title>
+        <title>部署管理画面</title>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -105,44 +105,33 @@
             <a href="/departments/view" class="nav-link">部署管理</a>
         </div>
 
-        <h1>社員管理画面</h1>
+        <h1>部署管理画面</h1>
 
-        <a href="/employees/register" class="add-link">新規登録</a>
+        <a href="/departments/register" class="add-link">新規登録</a>
 
-        {% if employees %}
+        {% if departments %}
         <table>
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>名前</th>
-                    <th>メールアドレス</th>
-                    <th>部署</th>
-                    <th>操作</th>
                 </tr>
             </thead>
             <tbody>
-                {% for employee in employees %}
+                {% for department in departments %}
                 <tr>
-                    <td>{{ employee.id }}</td>
-                    <td>{{ employee.name }}</td>
-                    <td>{{ employee.email }}</td>
-                    <td>
-                        {% if employee.department_id and employee.department_id in departments %}
-                        {{ departments[employee.department_id].name }}
-                        {% else %}
-                        未設定
-                        {% endif %}
-                    </td>
+                    <td>{{ department.id }}</td>
+                    <td>{{ department.name }}</td>
                     <td>
                         <div class="action-buttons">
                             <a
-                                href="/employees/{{ employee.id }}/edit"
+                                href="/departments/{{ department.id }}/edit"
                                 class="edit-btn"
                                 >編集</a
                             >
                             <form
                                 method="POST"
-                                action="/employees/{{ employee.id }}/delete"
+                                action="/departments/{{ department.id }}/delete"
                                 style="margin: 0"
                             >
                                 <button
@@ -160,7 +149,7 @@
             </tbody>
         </table>
         {% else %}
-        <p class="empty-message">登録されている社員はありません。</p>
+        <p class="empty-message">登録されている部署はありません。</p>
         {% endif %}
     </body>
 </html>

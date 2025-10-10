@@ -10,12 +10,13 @@ from litestar.response import Template, Redirect
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from litestar.template.config import TemplateConfig
 
-from models import PC, Employee
+from models import PC, Employee, Department
 
 
 # In-memory storage
 pcs: dict[UUID, PC] = {}
 employees: dict[UUID, Employee] = {}
+departments: dict[UUID, Department] = {}
 
 
 @post("/pcs", status_code=HTTP_201_CREATED)
@@ -71,7 +72,11 @@ async def show_register_form() -> Template:
     """Show PC registration form."""
     return Template(
         template_name="pc_register.html",
-        context={"success": False, "employees": list(employees.values())},
+        context={
+            "success": False,
+            "employees": list(employees.values()),
+            "departments": departments,
+        },
     )
 
 
@@ -90,7 +95,11 @@ async def register_pc(
     pcs[pc.id] = pc
     return Template(
         template_name="pc_register.html",
-        context={"success": True, "employees": list(employees.values())},
+        context={
+            "success": True,
+            "employees": list(employees.values()),
+            "departments": departments,
+        },
     )
 
 
@@ -101,7 +110,11 @@ async def show_edit_form(pc_id: UUID) -> Template:
         raise NotFoundException(detail=f"PC with ID {pc_id} not found")
     return Template(
         template_name="pc_edit.html",
-        context={"pc": pcs[pc_id], "employees": list(employees.values())},
+        context={
+            "pc": pcs[pc_id],
+            "employees": list(employees.values()),
+            "departments": departments,
+        },
     )
 
 
@@ -181,14 +194,17 @@ async def view_employees() -> Template:
     """View all employees in HTML."""
     return Template(
         template_name="employee_list.html",
-        context={"employees": list(employees.values())},
+        context={"employees": list(employees.values()), "departments": departments},
     )
 
 
 @get("/employees/register")
 async def show_employee_register_form() -> Template:
     """Show employee registration form."""
-    return Template(template_name="employee_register.html", context={"success": False})
+    return Template(
+        template_name="employee_register.html",
+        context={"success": False, "departments": list(departments.values())},
+    )
 
 
 @post("/employees/register")
@@ -196,13 +212,17 @@ async def register_employee(
     data: Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)],
 ) -> Template:
     """Register a new employee from form."""
+    department_id = UUID(data["department_id"]) if data.get("department_id") else None
     employee = Employee(
         name=data["name"],
         email=data["email"],
-        department=data["department"],
+        department_id=department_id,
     )
     employees[employee.id] = employee
-    return Template(template_name="employee_register.html", context={"success": True})
+    return Template(
+        template_name="employee_register.html",
+        context={"success": True, "departments": list(departments.values())},
+    )
 
 
 @get("/employees/{employee_id:uuid}/edit")
@@ -211,7 +231,11 @@ async def show_employee_edit_form(employee_id: UUID) -> Template:
     if employee_id not in employees:
         raise NotFoundException(detail=f"Employee with ID {employee_id} not found")
     return Template(
-        template_name="employee_edit.html", context={"employee": employees[employee_id]}
+        template_name="employee_edit.html",
+        context={
+            "employee": employees[employee_id],
+            "departments": list(departments.values()),
+        },
     )
 
 
@@ -224,11 +248,12 @@ async def edit_employee_form(
     if employee_id not in employees:
         raise NotFoundException(detail=f"Employee with ID {employee_id} not found")
 
+    department_id = UUID(data["department_id"]) if data.get("department_id") else None
     employee = Employee(
         id=employee_id,
         name=data["name"],
         email=data["email"],
-        department=data["department"],
+        department_id=department_id,
     )
     employees[employee_id] = employee
     return Redirect(path="/employees/view")
@@ -241,6 +266,113 @@ async def delete_employee_form(employee_id: UUID) -> Redirect:
         raise NotFoundException(detail=f"Employee with ID {employee_id} not found")
     del employees[employee_id]
     return Redirect(path="/employees/view")
+
+
+# Department REST API endpoints
+@post("/departments", status_code=HTTP_201_CREATED)
+async def create_department(data: Department) -> Department:
+    """Create a new department."""
+    departments[data.id] = data
+    return data
+
+
+@get("/departments")
+async def list_departments() -> list[Department]:
+    """Get all departments."""
+    return list(departments.values())
+
+
+@get("/departments/{department_id:uuid}")
+async def get_department(department_id: UUID) -> Department:
+    """Get a specific department by ID."""
+    if department_id not in departments:
+        raise NotFoundException(detail=f"Department with ID {department_id} not found")
+    return departments[department_id]
+
+
+@put("/departments/{department_id:uuid}")
+async def update_department(department_id: UUID, data: Department) -> Department:
+    """Update an existing department."""
+    if department_id not in departments:
+        raise NotFoundException(detail=f"Department with ID {department_id} not found")
+    data.id = department_id
+    departments[department_id] = data
+    return data
+
+
+@delete("/departments/{department_id:uuid}", status_code=HTTP_204_NO_CONTENT)
+async def delete_department(department_id: UUID) -> None:
+    """Delete an department."""
+    if department_id not in departments:
+        raise NotFoundException(detail=f"Department with ID {department_id} not found")
+    del departments[department_id]
+
+
+# Department HTML form endpoints
+@get("/departments/view")
+async def view_departments() -> Template:
+    """View all departments in HTML."""
+    return Template(
+        template_name="department_list.html",
+        context={"departments": list(departments.values())},
+    )
+
+
+@get("/departments/register")
+async def show_department_register_form() -> Template:
+    """Show department registration form."""
+    return Template(
+        template_name="department_register.html", context={"success": False}
+    )
+
+
+@post("/departments/register")
+async def register_department(
+    data: Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)],
+) -> Template:
+    """Register a new employee from form."""
+    department = Department(
+        name=data["name"],
+    )
+    departments[department.id] = department
+    return Template(template_name="department_register.html", context={"success": True})
+
+
+@get("/departments/{department_id:uuid}/edit")
+async def show_department_edit_form(department_id: UUID) -> Template:
+    """Show department edit form."""
+    if department_id not in departments:
+        raise NotFoundException(detail=f"Department with ID {department_id} not found")
+    return Template(
+        template_name="department_edit.html",
+        context={"department": departments[department_id]},
+    )
+
+
+@post("/departments/{department_id:uuid}/edit")
+async def edit_department_form(
+    department_id: UUID,
+    data: Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)],
+) -> Redirect:
+    """Update an department from form."""
+    if department_id not in departments:
+        raise NotFoundException(detail=f"Department with ID {department_id} not found")
+
+    department = Department(
+        id=department_id,
+        name=data["name"],
+    )
+    departments[department_id] = department
+    return Redirect(path="/departments/view")
+
+
+@post("/departments/{department_id:uuid}/delete")
+async def delete_department_form(department_id: UUID) -> Redirect:
+    """Delete an employee from form."""
+    if department_id not in departments:
+        raise NotFoundException(detail=f"Department with ID {department_id} not found")
+    del departments[department_id]
+    return Redirect(path="/departments/view")
 
 
 def create_app() -> Litestar:
@@ -268,6 +400,17 @@ def create_app() -> Litestar:
             show_employee_edit_form,
             edit_employee_form,
             delete_employee_form,
+            create_department,
+            list_departments,
+            get_department,
+            update_department,
+            delete_department,
+            view_departments,
+            show_department_register_form,
+            register_department,
+            show_department_edit_form,
+            edit_department_form,
+            delete_department_form,
         ],
         template_config=TemplateConfig(
             directory=Path("templates"),

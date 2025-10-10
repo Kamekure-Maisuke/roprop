@@ -7,7 +7,7 @@ class Employee:
     id: UUID = field(default_factory=uuid4)
     name: str = ""
     email: str = ""
-    department: str = ""
+    department_id: UUID | None = None
 
 
 @dataclass
@@ -17,3 +17,9 @@ class PC:
     model: str = ""
     serial_number: str = ""
     assigned_to: UUID | None = None
+
+
+@dataclass
+class Department:
+    id: UUID = field(default_factory=uuid4)
+    name: str = ""
