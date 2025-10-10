@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.pull_request.merged == true || github.event.pull_request.state == 'closed'
     steps:
-      - name: Delete merged branch
+      - name: Delete merged closed branch
         uses: actions/github-script@v8
         with:
           script: |
