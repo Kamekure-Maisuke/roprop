@@ -1,1 +1,3 @@
-# TODO: 書く。
+def test_placeholder():
+    """ダミーテスト"""
+    assert True
