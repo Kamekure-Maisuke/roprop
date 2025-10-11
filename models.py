@@ -2,48 +2,17 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, String, Text, func
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from piccolo.columns import Text, Timestamp, UUID as PiccoloUUID, Varchar
+from piccolo.table import Table
+
+from app.database import DB
 
 
-class Base(DeclarativeBase):
-    pass
-
-
-class DepartmentModel(Base):
-    __tablename__: str = "departments"
-
-    id: Mapped[UUID] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-
-
-class EmployeeModel(Base):
-    __tablename__: str = "employees"
-
-    id: Mapped[UUID] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    email: Mapped[str] = mapped_column(String(255), nullable=False)
-    department_id: Mapped[UUID | None] = mapped_column(ForeignKey("departments.id", ondelete="SET NULL"))
-
-
-class PCModel(Base):
-    __tablename__: str = "pcs"
-
-    id: Mapped[UUID] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(255), nullable=False)
-    model: Mapped[str] = mapped_column(String(255), nullable=False)
-    serial_number: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    assigned_to: Mapped[UUID | None] = mapped_column(ForeignKey("employees.id", ondelete="SET NULL"))
-
-
-class PCAssignmentHistoryModel(Base):
-    __tablename__: str = "pc_assignment_histories"
-
-    id: Mapped[UUID] = mapped_column(primary_key=True)
-    pc_id: Mapped[UUID] = mapped_column(ForeignKey("pcs.id", ondelete="CASCADE"), nullable=False)
-    employee_id: Mapped[UUID | None] = mapped_column(ForeignKey("employees.id", ondelete="SET NULL"))
-    assigned_at: Mapped[datetime] = mapped_column(server_default=func.current_timestamp(), nullable=False)
-    notes: Mapped[str] = mapped_column(Text, default="")
+# Dataclassモデル (API入出力用)
+@dataclass
+class Department:
+    id: UUID = field(default_factory=uuid4)
+    name: str = ""
 
 
 @dataclass
@@ -64,15 +33,43 @@ class PC:
 
 
 @dataclass
-class Department:
-    id: UUID = field(default_factory=uuid4)
-    name: str = ""
-
-
-@dataclass
 class PCAssignmentHistory:
     id: UUID = field(default_factory=uuid4)
     pc_id: UUID = field(default_factory=uuid4)
     employee_id: UUID | None = None
     assigned_at: datetime = field(default_factory=datetime.now)
     notes: str = ""
+
+
+# Piccoloテーブル (ORM)
+class DepartmentTable(Table, tablename="departments"):
+    id = PiccoloUUID(primary_key=True)
+    name = Varchar(length=255, null=False)
+
+
+class EmployeeTable(Table, tablename="employees"):
+    id = PiccoloUUID(primary_key=True)
+    name = Varchar(length=255, null=False)
+    email = Varchar(length=255, null=False)
+    department_id = PiccoloUUID(null=True)
+
+
+class PCTable(Table, tablename="pcs"):
+    id = PiccoloUUID(primary_key=True)
+    name = Varchar(length=255, null=False)
+    model = Varchar(length=255, null=False)
+    serial_number = Varchar(length=255, null=False, unique=True)
+    assigned_to = PiccoloUUID(null=True)
+
+
+class PCAssignmentHistoryTable(Table, tablename="pc_assignment_histories"):
+    id = PiccoloUUID(primary_key=True)
+    pc_id = PiccoloUUID(null=False)
+    employee_id = PiccoloUUID(null=True)
+    assigned_at = Timestamp(null=False)
+    notes = Text(default="")
+
+
+# データベースエンジン設定
+for table in [DepartmentTable, EmployeeTable, PCTable, PCAssignmentHistoryTable]:
+    table._meta._db = DB

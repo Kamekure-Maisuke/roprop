@@ -1,9 +1,6 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
+from piccolo.engine.postgres import PostgresEngine
+
 from app.config import DATABASE_URL
 
-engine = create_engine(DATABASE_URL, echo=True)
-
-
-def get_session():
-    return Session(engine)
+# Piccolo用のデータベースエンジン設定
+DB = PostgresEngine(config={"dsn": DATABASE_URL})
