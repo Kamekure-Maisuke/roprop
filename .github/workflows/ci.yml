@@ -19,8 +19,8 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Run basedpyright
-        run: uv run basedpyright
+      - name: Run ruff
+        run: uv run ruff check .
 
   test:
     runs-on: ubuntu-latest
