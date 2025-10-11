@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:18-alpine
+    ports:
+      - "5430:5432"
+    tty: true
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./init_data/pg:/docker-entrypoint-initdb.d
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+volumes:
+  db_data:
