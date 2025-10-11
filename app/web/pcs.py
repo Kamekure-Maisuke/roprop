@@ -1,10 +1,11 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID, uuid4
 from litestar import Router, get, post
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import NotFoundException
 from litestar.params import Body
-from litestar.response import Redirect, Template
+from litestar.response import Redirect, Response, Template
 
 from models import (
     Department,
@@ -233,6 +234,127 @@ async def view_all_assignment_history() -> Template:
     )
 
 
+@get("/pcs/export")
+async def export_pcs_tsv() -> Response:
+    pcs = [
+        PC(
+            id=p["id"],
+            name=p["name"],
+            model=p["model"],
+            serial_number=p["serial_number"],
+            assigned_to=p["assigned_to"],
+        )
+        for p in await P.select()
+    ]
+    employees = {
+        e["id"]: Employee(
+            id=e["id"],
+            name=e["name"],
+            email=e["email"],
+            department_id=e["department_id"],
+        )
+        for e in await E.select()
+    }
+
+    headers = ["ID", "名前", "モデル", "シリアル番号", "割り当て先"]
+    rows = ["\t".join(headers)]
+
+    for pc in pcs:
+        assigned_name = (
+            employees[pc.assigned_to].name
+            if pc.assigned_to in employees
+            else "未割り当て"
+        )
+        row = [str(pc.id), pc.name, pc.model, pc.serial_number, assigned_name]
+        rows.append("\t".join(row))
+
+    tsv_content = "\n".join(rows)
+    timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+
+    return Response(
+        content=tsv_content.encode("utf-8"),
+        media_type="text/tab-separated-values; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="pc_list_{timestamp}.tsv"'
+        },
+    )
+
+
+@get("/history/export")
+async def export_history_tsv() -> Response:
+    histories = sorted(
+        [
+            PCAssignmentHistory(
+                id=h["id"],
+                pc_id=h["pc_id"],
+                employee_id=h["employee_id"],
+                assigned_at=h["assigned_at"],
+                notes=h["notes"],
+            )
+            for h in await H.select()
+        ],
+        key=lambda h: h.assigned_at,
+        reverse=True,
+    )
+    pcs = {
+        p["id"]: PC(
+            id=p["id"],
+            name=p["name"],
+            model=p["model"],
+            serial_number=p["serial_number"],
+            assigned_to=p["assigned_to"],
+        )
+        for p in await P.select()
+    }
+    employees = {
+        e["id"]: Employee(
+            id=e["id"],
+            name=e["name"],
+            email=e["email"],
+            department_id=e["department_id"],
+        )
+        for e in await E.select()
+    }
+    departments = {
+        d["id"]: Department(id=d["id"], name=d["name"]) for d in await D.select()
+    }
+
+    headers = ["割り当て日時", "PC名", "PCモデル", "割り当て先社員", "部署"]
+    rows = ["\t".join(headers)]
+
+    for history in histories:
+        assigned_at = history.assigned_at.strftime("%Y-%m-%d %H:%M:%S")
+        pc_name = pcs[history.pc_id].name if history.pc_id in pcs else "(削除済み)"
+        pc_model = pcs[history.pc_id].model if history.pc_id in pcs else "-"
+
+        if history.employee_id and history.employee_id in employees:
+            employee_name = employees[history.employee_id].name
+            dept_id = employees[history.employee_id].department_id
+            department_name = (
+                departments[dept_id].name if dept_id and dept_id in departments else "-"
+            )
+        elif history.employee_id:
+            employee_name = "(削除済み)"
+            department_name = "-"
+        else:
+            employee_name = "未割り当て"
+            department_name = "-"
+
+        row = [assigned_at, pc_name, pc_model, employee_name, department_name]
+        rows.append("\t".join(row))
+
+    tsv_content = "\n".join(rows)
+    timestamp = datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+
+    return Response(
+        content=tsv_content.encode("utf-8"),
+        media_type="text/tab-separated-values; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="pc_assignment_history_{timestamp}.tsv"'
+        },
+    )
+
+
 pc_web_router = Router(
     path="",
     route_handlers=[
@@ -244,5 +366,7 @@ pc_web_router = Router(
         delete_pc_form,
         view_pc_assignment_history,
         view_all_assignment_history,
+        export_pcs_tsv,
+        export_history_tsv,
     ],
 )
