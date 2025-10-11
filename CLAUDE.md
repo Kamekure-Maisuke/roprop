@@ -32,9 +32,9 @@ APIドキュメント: http://localhost:8000/schema (ReDoc), http://localhost:80
 app/
   api/         - REST APIエンドポイント (pcs.py, employees.py, departments.py)
   web/         - HTMLフォームルート (pcs.py, employees.py, departments.py, dashboard.py)
-  database.py  - SQLAlchemyセッション管理 (get_session)
+  database.py  - Piccolo用エンジン設定
   config.py    - データベース接続設定
-models.py      - SQLAlchemy ORMモデル (*Model) とdataclass (*) を定義
+models.py      - Piccolo ORMモデル (*Model) とdataclass (*) を定義
 main.py        - アプリ起動エントリーポイント (create_app)
 init_data/pg/  - PostgreSQL初期化SQLスクリプト (Docker起動時に自動実行)
 templates/     - Jinja2テンプレート
@@ -42,7 +42,7 @@ templates/     - Jinja2テンプレート
 
 **データモデル**:
 - `models.py`には2種類の定義が共存
-  - SQLAlchemy ORMモデル: `DepartmentModel`, `EmployeeModel`, `PCModel`, `PCAssignmentHistoryModel`
+  - Piccolo ORMモデル: `DepartmentTable`, `EmployeeTable`, `PCTable`, `PCAssignmentHistoryTable`
   - Dataclassモデル (API入出力用): `Department`, `Employee`, `PC`, `PCAssignmentHistory`
 
 **ルート構成**:
@@ -54,9 +54,9 @@ templates/     - Jinja2テンプレート
 **データベース**:
 - PostgreSQL 18 (Docker Compose)
 - ポート: 5430 (ホスト) -> 5432 (コンテナ)
-- SQLAlchemy ORMでアクセス (`app/database.py`の`get_session()`経由)
+- Piccolo ORMでアクセス
 
 **PC割り当て履歴**:
-- PC作成/更新時に`assigned_to`が変更されたら、`PCAssignmentHistoryModel`に自動記録 (app/api/pcs.py:24-30, 80-86)
+- PC作成/更新時に`assigned_to`が変更されたら、`PCAssignmentHistoryTable`に自動記録
 
 **テンプレート**: Jinja2 (`templates/`ディレクトリ)、HTMLルートは`Template`または`Redirect`を返す
