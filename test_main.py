@@ -1,5 +1,6 @@
 import base64
-from unittest.mock import patch
+import json
+from unittest.mock import AsyncMock, patch
 
 from litestar.testing import TestClient
 
@@ -26,7 +27,8 @@ def test_api_invalid_bearer_token():
 @patch("app.cache.redis")
 def test_api_valid_bearer_token(mock_redis):
     """正しいトークンで認証成功"""
-    mock_redis.get.return_value = None
+    mock_redis.get = AsyncMock(return_value=json.dumps([]))
+    mock_redis.setex = AsyncMock()
     with TestClient(app=create_app()) as client:
         res = client.get("/pcs", headers={"Authorization": "Bearer test-token"})
         assert res.status_code == 200
