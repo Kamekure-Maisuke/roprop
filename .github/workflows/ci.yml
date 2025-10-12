@@ -51,9 +51,3 @@ jobs:
 
       - name: Run pytest
         run: uv run pytest
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5430/postgres
-          REDIS_URL: redis://localhost:6379
-          API_TOKEN: xxxxx-ci
-          WEB_BASIC_USERNAME: xxxxx-ci
-          WEB_BASIC_PASSWORD: xxxxx-ci
