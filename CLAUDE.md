@@ -17,8 +17,9 @@ docker compose up -d
 # 開発サーバー起動
 uv run uvicorn main:app --reload
 
-# Lint/テスト
-uv run basedpyright
+# Lint/Format/テスト
+uv run ruff check
+uv run ruff format
 uv run pytest
 uv run pytest test_main.py::test_create_pc  # 単一テスト実行
 ```

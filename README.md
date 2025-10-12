@@ -1,11 +1,19 @@
 ## usage
 
 ```sh
+# 構築
+docker compose up
+```
+
+```sh
 # 実行
 uv run uvicorn main:app --reload
 
 # lint
-uv run basedpyright
+uv run ruff check
+
+# format
+uv run ruff format
 
 # test
 uv run pytest
