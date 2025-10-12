@@ -1,6 +1,5 @@
 import base64
-import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 from litestar.testing import TestClient
 
