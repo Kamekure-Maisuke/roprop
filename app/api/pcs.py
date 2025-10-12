@@ -3,6 +3,7 @@ from litestar import Router, delete, get, post, put
 from litestar.exceptions import NotFoundException
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
+from app.auth import bearer_token_guard
 from app.cache import delete_cached, get_cached, set_cached
 from models import PC, PCAssignmentHistory, PCAssignmentHistoryTable as H, PCTable as P
 
@@ -114,4 +115,6 @@ pc_api_router = Router(
         get_pc_assignment_history,
         list_all_assignment_history,
     ],
+    guards=[bearer_token_guard],
+    security=[{"BearerAuth": []}],
 )

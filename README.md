@@ -6,6 +6,10 @@ docker compose up
 ```
 
 ```sh
+# env用意
+# .envに保管しているものに書き換え。
+cp .env.sample .env
+
 # 実行
 uv run uvicorn main:app --reload
 
@@ -19,12 +23,15 @@ uv run ruff format
 uv run pytest
 ```
 
+## 確認
+
+```sh
+curl -H "Authorization: Bearer xxxxxxxxxxx" http://localhost:8000/pcs
+```
+
 ## endpoint
 
 ```sh
-# redoc
-http://localhost:8000/schema
-
 # swagger
 http://localhost:8000/schema/swagger
 ```

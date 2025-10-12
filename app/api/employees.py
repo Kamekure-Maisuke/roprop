@@ -8,6 +8,7 @@ from litestar.params import Body
 from litestar.response import Response
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
+from app.auth import bearer_token_guard
 from app.cache import delete_cached, get_cached, set_cached
 from app.utils import process_profile_image
 from models import Employee, EmployeeTable as E
@@ -103,4 +104,6 @@ employee_api_router = Router(
         upload_profile_image,
         get_profile_image,
     ],
+    guards=[bearer_token_guard],
+    security=[{"BearerAuth": []}],
 )

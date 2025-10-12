@@ -2,6 +2,8 @@ from pathlib import Path
 from litestar import Litestar
 from litestar.contrib.jinja import JinjaTemplateEngine
 from litestar.template.config import TemplateConfig
+from litestar.openapi.config import OpenAPIConfig
+from litestar.openapi.spec import Components, SecurityScheme
 
 from app.api.pcs import pc_api_router
 from app.api.employees import employee_api_router
@@ -26,6 +28,20 @@ def create_app() -> Litestar:
         template_config=TemplateConfig(
             directory=Path("templates"),
             engine=JinjaTemplateEngine,
+        ),
+        openapi_config=OpenAPIConfig(
+            title="PC・社員・部署管理API",
+            version="1.0.0",
+            components=Components(
+                security_schemes={
+                    "BearerAuth": SecurityScheme(
+                        type="http",
+                        scheme="bearer",
+                        bearer_format="JWT",
+                        description="APIトークンを入力してください",
+                    )
+                }
+            ),
         ),
     )
 
