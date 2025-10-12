@@ -7,6 +7,7 @@ from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Template
 
+from app.auth import basic_auth_guard
 from app.cache import delete_cached
 from models import Department, DepartmentTable as D
 
@@ -88,4 +89,5 @@ department_web_router = Router(
         edit_department_form,
         delete_department_form,
     ],
+    guards=[basic_auth_guard],
 )
