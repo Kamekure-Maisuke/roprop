@@ -1,12 +1,14 @@
 from typing import Annotated
 from uuid import UUID
-from litestar import Router, get, post
+
+from litestar import Request, Router, get, post
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import NotFoundException
 from litestar.pagination import ClassicPagination
 from litestar.params import Body
-from litestar.response import Redirect, Template
+from litestar.response import Redirect, Response, Template
 
+from app.utils import process_profile_image
 from models import Department, DepartmentTable as D, Employee, EmployeeTable as E
 
 FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)]
@@ -58,11 +60,24 @@ async def show_employee_register_form() -> Template:
 
 
 @post("/employees/register")
-async def register_employee(data: FormData) -> Template:
-    dept_id = UUID(data["department_id"]) if data.get("department_id") else None
-    emp = Employee(name=data["name"], email=data["email"], department_id=dept_id)
+async def register_employee(request: Request) -> Template:
+    form = await request.form()
+    dept_id = UUID(form["department_id"]) if form.get("department_id") else None
+    emp = Employee(name=form["name"], email=form["email"], department_id=dept_id)
+
+    profile_image = None
+    if file := form.get("profile_image"):
+        try:
+            profile_image = process_profile_image(await file.read())
+        except ValueError:
+            pass
+
     await E(
-        id=emp.id, name=emp.name, email=emp.email, department_id=emp.department_id
+        id=emp.id,
+        name=emp.name,
+        email=emp.email,
+        department_id=emp.department_id,
+        profile_image=profile_image,
     ).save()
     return Template(
         template_name="employee_register.html",
@@ -102,6 +117,31 @@ async def delete_employee_form(employee_id: UUID) -> Redirect:
     return Redirect(path="/employees/view")
 
 
+@post("/employees/{employee_id:uuid}/upload-image")
+async def upload_employee_image(employee_id: UUID, request: Request) -> Redirect:
+    await _get_or_404(employee_id)
+    form = await request.form()
+    if file := form.get("data"):
+        try:
+            processed = process_profile_image(await file.read())
+            await E.update({E.profile_image: processed}).where(E.id == employee_id)
+        except ValueError:
+            pass
+    return Redirect(path=f"/employees/{employee_id}/edit")
+
+
+@get("/employees/{employee_id:uuid}/image")
+async def get_employee_image(employee_id: UUID) -> Response:
+    emp = await _get_or_404(employee_id)
+    if not (img := emp.get("profile_image")):
+        # 1x1透明GIF
+        return Response(
+            content=b"\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x00\x00\x00\x21\xf9\x04\x01\x00\x00\x00\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x01\x44\x00\x3b",
+            media_type="image/gif",
+        )
+    return Response(content=bytes(img), media_type="image/webp")
+
+
 employee_web_router = Router(
     path="",
     route_handlers=[
@@ -111,5 +151,7 @@ employee_web_router = Router(
         show_employee_edit_form,
         edit_employee_form,
         delete_employee_form,
+        upload_employee_image,
+        get_employee_image,
     ],
 )

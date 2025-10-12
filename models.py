@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from piccolo.columns import Text, Timestamp, UUID as PiccoloUUID, Varchar
+from piccolo.columns import Bytea, Text, Timestamp, UUID as PiccoloUUID, Varchar
 from piccolo.table import Table
 
 from app.database import DB
@@ -21,6 +21,7 @@ class Employee:
     name: str = ""
     email: str = ""
     department_id: UUID | None = None
+    profile_image: bytes | None = None
 
 
 @dataclass
@@ -52,6 +53,7 @@ class EmployeeTable(Table, tablename="employees"):
     name = Varchar(length=255, null=False)
     email = Varchar(length=255, null=False)
     department_id = PiccoloUUID(null=True)
+    profile_image = Bytea(null=True)
 
 
 class PCTable(Table, tablename="pcs"):
