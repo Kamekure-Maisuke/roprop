@@ -8,6 +8,7 @@ from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Response, Template
 
+from app.cache import delete_cached
 from app.utils import process_profile_image
 from models import Department, DepartmentTable as D, Employee, EmployeeTable as E
 
@@ -79,6 +80,7 @@ async def register_employee(request: Request) -> Template:
         department_id=emp.department_id,
         profile_image=profile_image,
     ).save()
+    await delete_cached("employees:list", "dashboard:stats")
     return Template(
         template_name="employee_register.html",
         context={"success": True, "departments": await _get_departments()},
@@ -107,6 +109,7 @@ async def edit_employee_form(employee_id: UUID, data: FormData) -> Redirect:
     await E.update(
         {E.name: data["name"], E.email: data["email"], E.department_id: dept_id}
     ).where(E.id == employee_id)
+    await delete_cached("employees:list", "dashboard:stats")
     return Redirect(path="/employees/view")
 
 
@@ -114,6 +117,7 @@ async def edit_employee_form(employee_id: UUID, data: FormData) -> Redirect:
 async def delete_employee_form(employee_id: UUID) -> Redirect:
     await _get_or_404(employee_id)
     await E.delete().where(E.id == employee_id)
+    await delete_cached("employees:list", "dashboard:stats")
     return Redirect(path="/employees/view")
 
 

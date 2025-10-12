@@ -8,6 +8,7 @@ from litestar.params import Body
 from litestar.response import Response
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
+from app.cache import delete_cached, get_cached, set_cached
 from app.utils import process_profile_image
 from models import Employee, EmployeeTable as E
 
@@ -33,12 +34,17 @@ async def create_employee(data: Employee) -> Employee:
     await E(
         id=data.id, name=data.name, email=data.email, department_id=data.department_id
     ).save()
+    await delete_cached("employees:list", "dashboard:stats")
     return data
 
 
 @get("/employees")
 async def list_employees() -> list[Employee]:
-    return [_to_employee(e) for e in await E.select()]
+    if cached := await get_cached("employees:list"):
+        return [Employee(**e) for e in cached]
+    result = [_to_employee(e) for e in await E.select()]
+    await set_cached("employees:list", [e.__dict__ for e in result])
+    return result
 
 
 @get("/employees/{employee_id:uuid}")
@@ -52,6 +58,7 @@ async def update_employee(employee_id: UUID, data: Employee) -> Employee:
     await E.update(
         {E.name: data.name, E.email: data.email, E.department_id: data.department_id}
     ).where(E.id == employee_id)
+    await delete_cached("employees:list", "dashboard:stats")
     data.id = employee_id
     return data
 
@@ -60,6 +67,7 @@ async def update_employee(employee_id: UUID, data: Employee) -> Employee:
 async def delete_employee(employee_id: UUID) -> None:
     await _get_or_404(employee_id)
     await E.delete().where(E.id == employee_id)
+    await delete_cached("employees:list", "dashboard:stats")
 
 
 @post("/employees/{employee_id:uuid}/profile-image", status_code=HTTP_204_NO_CONTENT)

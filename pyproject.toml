@@ -8,6 +8,7 @@ dependencies = [
     "litestar[standard]>=2.18.0",
     "piccolo[postgres]>=1.28.0",
     "pillow>=11.3.0",
+    "redis[hiredis]>=6.4.0",
 ]
 
 [dependency-groups]

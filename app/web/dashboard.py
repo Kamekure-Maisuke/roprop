@@ -2,11 +2,15 @@ from uuid import UUID
 from litestar import Router, get
 from litestar.response import Template
 
+from app.cache import get_cached, set_cached
 from models import DepartmentTable as D, EmployeeTable as E, PCTable as P
 
 
 @get("/dashboard")
 async def view_dashboard() -> Template:
+    if cached := await get_cached("dashboard:stats"):
+        return Template(template_name="dashboard.html", context=cached)
+
     departments = await D.select()
     employees = await E.select()
     pcs = await P.select()
@@ -32,16 +36,15 @@ async def view_dashboard() -> Template:
         elif not pc["assigned_to"]:
             unassigned_pc_count += 1
 
-    return Template(
-        template_name="dashboard.html",
-        context={
-            "dept_stats": list(dept_stats.values()),
-            "unassigned_pc_count": unassigned_pc_count,
-            "total_pcs": len(pcs),
-            "total_employees": len(employees),
-            "total_departments": len(departments),
-        },
-    )
+    context = {
+        "dept_stats": list(dept_stats.values()),
+        "unassigned_pc_count": unassigned_pc_count,
+        "total_pcs": len(pcs),
+        "total_employees": len(employees),
+        "total_departments": len(departments),
+    }
+    await set_cached("dashboard:stats", context)
+    return Template(template_name="dashboard.html", context=context)
 
 
 dashboard_web_router = Router(

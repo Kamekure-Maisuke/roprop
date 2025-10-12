@@ -3,6 +3,7 @@ from litestar import Router, delete, get, post, put
 from litestar.exceptions import NotFoundException
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
+from app.cache import delete_cached, get_cached, set_cached
 from models import PC, PCAssignmentHistory, PCAssignmentHistoryTable as H, PCTable as P
 
 
@@ -43,12 +44,17 @@ async def create_pc(data: PC) -> PC:
     ).save()
     if data.assigned_to:
         await H(id=uuid4(), pc_id=data.id, employee_id=data.assigned_to).save()
+    await delete_cached("pcs:list", "history:all", "dashboard:stats")
     return data
 
 
 @get("/pcs")
 async def list_pcs() -> list[PC]:
-    return [_to_pc(r) for r in await P.select()]
+    if cached := await get_cached("pcs:list"):
+        return [PC(**p) for p in cached]
+    result = [_to_pc(r) for r in await P.select()]
+    await set_cached("pcs:list", [p.__dict__ for p in result])
+    return result
 
 
 @get("/pcs/{pc_id:uuid}")
@@ -69,6 +75,7 @@ async def update_pc(pc_id: UUID, data: PC) -> PC:
             P.assigned_to: data.assigned_to,
         }
     ).where(P.id == pc_id)
+    await delete_cached("pcs:list", "history:all", "dashboard:stats")
     data.id = pc_id
     return data
 
@@ -77,6 +84,7 @@ async def update_pc(pc_id: UUID, data: PC) -> PC:
 async def delete_pc(pc_id: UUID) -> None:
     await _get_or_404(pc_id)
     await P.delete().where(P.id == pc_id)
+    await delete_cached("pcs:list", "history:all", "dashboard:stats")
 
 
 @get("/pcs/{pc_id:uuid}/history")
@@ -87,8 +95,12 @@ async def get_pc_assignment_history(pc_id: UUID) -> list[PCAssignmentHistory]:
 
 @get("/history")
 async def list_all_assignment_history() -> list[PCAssignmentHistory]:
+    if cached := await get_cached("history:all"):
+        return [PCAssignmentHistory(**h) for h in cached]
     histories = [_to_history(h) for h in await H.select()]
-    return sorted(histories, key=lambda h: h.assigned_at, reverse=True)
+    result = sorted(histories, key=lambda h: h.assigned_at, reverse=True)
+    await set_cached("history:all", [h.__dict__ for h in result])
+    return result
 
 
 pc_api_router = Router(

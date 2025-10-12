@@ -8,6 +8,7 @@ from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Response, Template
 
+from app.cache import delete_cached
 from models import (
     Department,
     DepartmentTable as D,
@@ -107,6 +108,7 @@ async def register_pc(data: FormData) -> Template:
     ).save()
     if assigned_to:
         await H(id=uuid4(), pc_id=pc.id, employee_id=assigned_to).save()
+    await delete_cached("pcs:list", "history:all", "dashboard:stats")
     employees, departments = await _get_employees_and_departments()
     return Template(
         template_name="pc_register.html",
@@ -145,6 +147,7 @@ async def edit_pc(pc_id: UUID, data: FormData) -> Redirect:
             P.assigned_to: assigned_to,
         }
     ).where(P.id == pc_id)
+    await delete_cached("pcs:list", "history:all", "dashboard:stats")
     return Redirect(path="/pcs/view")
 
 
@@ -152,6 +155,7 @@ async def edit_pc(pc_id: UUID, data: FormData) -> Redirect:
 async def delete_pc_form(pc_id: UUID) -> Redirect:
     await _get_pc_or_404(pc_id)
     await P.delete().where(P.id == pc_id)
+    await delete_cached("pcs:list", "history:all", "dashboard:stats")
     return Redirect(path="/pcs/view")
 
 
