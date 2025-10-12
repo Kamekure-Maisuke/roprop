@@ -24,20 +24,13 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:18-alpine
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5430:5432
-      redis:
-        image: redis:8.2-alpine
-        ports:
-          - 6379:6379
     steps:
       - uses: actions/checkout@v5
+
+      - name: Run docker compose
+        uses: hoverkraft-tech/compose-action@b716db5b717cb9b81e391fe638e5aceaa2299e43 # v2.4.0
+        with:
+          compose-file: "./compose.yaml"
 
       - name: Set up Python
         uses: actions/setup-python@v6
