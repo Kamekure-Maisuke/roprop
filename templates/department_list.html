@@ -36,7 +36,7 @@
 
         <a href="/departments/register" role="button">新規登録</a>
 
-        {% if departments %}
+        {% if pagination.items or pagination.current_page > 1 %}
         <figure>
             <table role="grid">
                 <thead>
@@ -47,30 +47,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for department in departments %}
+                    {% for department in pagination.items %}
                     <tr>
                         <td>{{ department.id }}</td>
                         <td>{{ department.name }}</td>
                         <td>
                             <div class="action-buttons">
-                                <a
-                                    href="/departments/{{ department.id }}/edit"
-                                    role="button"
-                                    class="secondary"
-                                    >編集</a
-                                >
-                                <form
-                                    method="POST"
-                                    action="/departments/{{ department.id }}/delete"
-                                    style="margin: 0"
-                                >
-                                    <button
-                                        type="submit"
-                                        class="secondary"
-                                        onclick="return confirm('本当に削除しますか？')"
-                                    >
-                                        削除
-                                    </button>
+                                <a href="/departments/{{ department.id }}/edit" role="button" class="secondary">編集</a>
+                                <form method="POST" action="/departments/{{ department.id }}/delete" style="margin: 0">
+                                    <button type="submit" class="secondary" onclick="return confirm('本当に削除しますか？')">削除</button>
                                 </form>
                             </div>
                         </td>
@@ -79,6 +64,22 @@
                 </tbody>
             </table>
         </figure>
+
+        {% if pagination.total_pages > 1 %}
+        <nav aria-label="ページネーション" style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
+            <ul style="display: flex; gap: 0.5rem; list-style: none; padding: 0; justify-content: center;">
+                {% if pagination.current_page > 1 %}
+                <li><a href="?page={{ pagination.current_page - 1 }}" role="button" class="secondary">前へ</a></li>
+                {% endif %}
+                {% for p in range(1, pagination.total_pages + 1) %}
+                <li><a href="?page={{ p }}" role="button" class="{% if p == pagination.current_page %}contrast{% else %}secondary{% endif %}">{{ p }}</a></li>
+                {% endfor %}
+                {% if pagination.current_page < pagination.total_pages %}
+                <li><a href="?page={{ pagination.current_page + 1 }}" role="button" class="secondary">次へ</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
         {% else %}
         <p style="text-align: center;">登録されている部署はありません。</p>
         {% endif %}

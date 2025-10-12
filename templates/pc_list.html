@@ -15,11 +15,6 @@
                 padding: 0.25rem 0.75rem;
                 font-size: 0.875rem;
             }
-            .no-results {
-                text-align: center;
-                padding: 1rem;
-                display: none;
-            }
         </style>
     </head>
     <body>
@@ -43,13 +38,7 @@
 
         <a href="/pcs/export" role="button" class="secondary">エクスポート</a>
 
-        {% if pcs %}
-        <input
-            type="search"
-            id="searchInput"
-            placeholder="名前、モデル、シリアル番号、割り当て先で検索..."
-        />
-        <div class="no-results" id="noResults">検索結果が見つかりません</div>
+        {% if pagination.items or pagination.current_page > 1 %}
         <figure>
             <table role="grid">
                 <thead>
@@ -63,7 +52,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for pc in pcs %}
+                    {% for pc in pagination.items %}
                     <tr>
                         <td>{{ pc.id }}</td>
                         <td>{{ pc.name }}</td>
@@ -71,26 +60,19 @@
                         <td>{{ pc.serial_number }}</td>
                         <td>
                             {% if pc.assigned_to and pc.assigned_to in employees %}
-                            {{ employees[pc.assigned_to].name }} {% elif
-                            pc.assigned_to %} (不明なID: {{ pc.assigned_to }}) {%
-                            else %} 未割り当て {% endif %}
+                            {{ employees[pc.assigned_to].name }}
+                            {% elif pc.assigned_to %}
+                            (不明なID: {{ pc.assigned_to }})
+                            {% else %}
+                            未割り当て
+                            {% endif %}
                         </td>
                         <td>
                             <div class="action-buttons">
                                 <a href="/pcs/{{ pc.id }}/edit" role="button" class="secondary">編集</a>
                                 <a href="/pcs/{{ pc.id }}/history/view" role="button" class="contrast">履歴</a>
-                                <form
-                                    method="POST"
-                                    action="/pcs/{{ pc.id }}/delete"
-                                    style="margin: 0"
-                                >
-                                    <button
-                                        type="submit"
-                                        class="secondary"
-                                        onclick="return confirm('本当に削除しますか？')"
-                                    >
-                                        削除
-                                    </button>
+                                <form method="POST" action="/pcs/{{ pc.id }}/delete" style="margin: 0">
+                                    <button type="submit" class="secondary" onclick="return confirm('本当に削除しますか？')">削除</button>
                                 </form>
                             </div>
                         </td>
@@ -99,37 +81,25 @@
                 </tbody>
             </table>
         </figure>
+
+        {% if pagination.total_pages > 1 %}
+        <nav aria-label="ページネーション">
+            <ul style="display: flex; gap: 0.5rem; list-style: none; padding: 0; justify-content: center;">
+                {% if pagination.current_page > 1 %}
+                <li><a href="?page={{ pagination.current_page - 1 }}" role="button" class="secondary">前へ</a></li>
+                {% endif %}
+                {% for p in range(1, pagination.total_pages + 1) %}
+                <li><a href="?page={{ p }}" role="button" class="{% if p == pagination.current_page %}contrast{% else %}secondary{% endif %}">{{ p }}</a></li>
+                {% endfor %}
+                {% if pagination.current_page < pagination.total_pages %}
+                <li><a href="?page={{ pagination.current_page + 1 }}" role="button" class="secondary">次へ</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
         {% else %}
         <p style="text-align: center;">登録されているPCはありません。</p>
         {% endif %}
         </main>
-
-        <script>
-            const search = () => {
-                const query = document
-                    .getElementById("searchInput")
-                    .value.toLowerCase();
-                const rows = document.querySelectorAll("tbody tr");
-                let visibleCount = 0;
-
-                rows.forEach((row) => {
-                    const text = Array.from(row.querySelectorAll("td"))
-                        .slice(1, 5)
-                        .map((td) => td.textContent.toLowerCase())
-                        .join(" ");
-
-                    const isVisible = text.includes(query);
-                    row.style.display = isVisible ? "" : "none";
-                    if (isVisible) visibleCount++;
-                });
-
-                document.getElementById("noResults").style.display =
-                    visibleCount === 0 && query ? "block" : "none";
-            };
-
-            document
-                .getElementById("searchInput")
-                ?.addEventListener("input", search);
-        </script>
     </body>
 </html>

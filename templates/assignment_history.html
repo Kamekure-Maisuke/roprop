@@ -86,7 +86,7 @@
         <!-- 統計情報 -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-number">{{ histories|length }}</div>
+                <div class="stat-number">{{ total }}</div>
                 <div class="stat-label">総履歴件数</div>
             </div>
             <div class="stat-card">
@@ -99,7 +99,7 @@
             </div>
         </div>
 
-        {% if histories %}
+        {% if pagination.items or pagination.current_page > 1 %}
         <!-- フィルタ・検索セクション -->
         <div class="filter-section">
             <input
@@ -145,7 +145,7 @@
                     </tr>
                 </thead>
                 <tbody id="historyTableBody">
-                    {% for history in histories %}
+                    {% for history in pagination.items %}
                     <tr
                         data-pc-id="{{ history.pc_id }}"
                         data-employee-id="{{ history.employee_id or 'unassigned' }}"
@@ -201,9 +201,21 @@
             </table>
         </figure>
 
-        <p style="text-align: center; color: var(--muted-color); margin-top: 1rem;">
-            表示件数: <strong id="visibleCount">{{ histories|length }}</strong> / {{ histories|length }}
-        </p>
+        {% if pagination.total_pages > 1 %}
+        <nav aria-label="ページネーション" style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem;">
+            <ul style="display: flex; gap: 0.5rem; list-style: none; padding: 0; justify-content: center;">
+                {% if pagination.current_page > 1 %}
+                <li><a href="?page={{ pagination.current_page - 1 }}" role="button" class="secondary">前へ</a></li>
+                {% endif %}
+                {% for p in range(1, pagination.total_pages + 1) %}
+                <li><a href="?page={{ p }}" role="button" class="{% if p == pagination.current_page %}contrast{% else %}secondary{% endif %}">{{ p }}</a></li>
+                {% endfor %}
+                {% if pagination.current_page < pagination.total_pages %}
+                <li><a href="?page={{ pagination.current_page + 1 }}" role="button" class="secondary">次へ</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
         {% else %}
         <p style="text-align: center;">割り当て履歴はまだありません。</p>
         {% endif %}
@@ -241,12 +253,9 @@
                 });
 
                 // 結果表示の更新
-                const totalCount = rows.length;
                 const hasFilters = searchQuery || pcFilter || employeeFilter || departmentFilter;
-
                 document.getElementById("noResults").style.display =
                     visibleCount === 0 && hasFilters ? "block" : "none";
-                document.getElementById("visibleCount").textContent = visibleCount;
             };
 
             // イベントリスナー設定
