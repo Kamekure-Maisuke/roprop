@@ -61,6 +61,13 @@
             <button type="submit">更新</button>
         </form>
 
+        <h3>プロフィール画像</h3>
+        <img src="/employees/{{ employee.id }}/image" alt="プロフィール画像" style="max-width: 200px; border-radius: 8px;" onerror="this.style.display='none'">
+        <form method="POST" action="/employees/{{ employee.id }}/upload-image" enctype="multipart/form-data">
+            <input type="file" name="data" accept="image/*" required>
+            <button type="submit">画像アップロード (5MB以内)</button>
+        </form>
+
         <a href="/employees/view" role="button" class="secondary">← 一覧に戻る</a>
         </main>
     </body>

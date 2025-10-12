@@ -6,7 +6,8 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "litestar[standard]>=2.18.0",
-    "piccolo[postgres]>=1.28.0"
+    "piccolo[postgres]>=1.28.0",
+    "pillow>=11.3.0",
 ]
 
 [dependency-groups]

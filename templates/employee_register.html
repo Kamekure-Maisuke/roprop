@@ -26,7 +26,7 @@
         <article style="background-color: var(--pico-ins-color);">社員を登録しました。</article>
         {% endif %}
 
-        <form method="POST" action="/employees/register">
+        <form method="POST" action="/employees/register" enctype="multipart/form-data">
             <label>
                 名前:
                 <input type="text" name="name" required />
@@ -45,6 +45,12 @@
                     <option value="{{ department.id }}">{{ department.name }}</option>
                     {% endfor %}
                 </select>
+            </label>
+
+            <label>
+                プロフィール画像 (任意):
+                <input type="file" name="profile_image" accept="image/*" />
+                <small>5MB以内、自動的に200x200にリサイズされます</small>
             </label>
 
             <button type="submit">登録</button>
