@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 from litestar import Router, get, post
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import NotFoundException
+from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Response, Template
 
@@ -46,7 +47,8 @@ async def _get_employees_and_departments() -> tuple[
 
 
 @get("/pcs/view")
-async def view_pcs() -> Template:
+async def view_pcs(page: int = 1) -> Template:
+    page_size, total = 10, await P.count()
     pcs = [
         PC(
             id=p["id"],
@@ -55,7 +57,7 @@ async def view_pcs() -> Template:
             serial_number=p["serial_number"],
             assigned_to=p["assigned_to"],
         )
-        for p in await P.select()
+        for p in await P.select().limit(page_size).offset((page - 1) * page_size)
     ]
     employees = {
         e["id"]: Employee(
@@ -66,8 +68,15 @@ async def view_pcs() -> Template:
         )
         for e in await E.select()
     }
+    pagination = ClassicPagination(
+        items=pcs,
+        page_size=page_size,
+        current_page=page,
+        total_pages=(total + page_size - 1) // page_size,
+    )
     return Template(
-        template_name="pc_list.html", context={"pcs": pcs, "employees": employees}
+        template_name="pc_list.html",
+        context={"pagination": pagination, "employees": employees},
     )
 
 
@@ -186,7 +195,8 @@ async def view_pc_assignment_history(pc_id: UUID) -> Template:
 
 
 @get("/history/view")
-async def view_all_assignment_history() -> Template:
+async def view_all_assignment_history(page: int = 1) -> Template:
+    page_size, total = 10, await H.count()
     histories = sorted(
         [
             PCAssignmentHistory(
@@ -196,7 +206,7 @@ async def view_all_assignment_history() -> Template:
                 assigned_at=h["assigned_at"],
                 notes=h["notes"],
             )
-            for h in await H.select()
+            for h in await H.select().limit(page_size).offset((page - 1) * page_size)
         ],
         key=lambda h: h.assigned_at,
         reverse=True,
@@ -223,10 +233,17 @@ async def view_all_assignment_history() -> Template:
     departments = {
         d["id"]: Department(id=d["id"], name=d["name"]) for d in await D.select()
     }
+    pagination = ClassicPagination(
+        items=histories,
+        page_size=page_size,
+        current_page=page,
+        total_pages=(total + page_size - 1) // page_size,
+    )
     return Template(
         template_name="assignment_history.html",
         context={
-            "histories": histories,
+            "pagination": pagination,
+            "total": total,
             "pcs": pcs,
             "employees": employees,
             "departments": departments,

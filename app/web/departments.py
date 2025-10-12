@@ -3,6 +3,7 @@ from uuid import UUID
 from litestar import Router, get, post
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import NotFoundException
+from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Template
 
@@ -19,13 +20,20 @@ async def _get_or_404(department_id: UUID) -> dict:
 
 
 @get("/departments/view")
-async def view_departments() -> Template:
-    results = await D.select()
+async def view_departments(page: int = 1) -> Template:
+    page_size, total = 10, await D.count()
+    departments = [
+        Department(id=d["id"], name=d["name"])
+        for d in await D.select().limit(page_size).offset((page - 1) * page_size)
+    ]
+    pagination = ClassicPagination(
+        items=departments,
+        page_size=page_size,
+        current_page=page,
+        total_pages=(total + page_size - 1) // page_size,
+    )
     return Template(
-        template_name="department_list.html",
-        context={
-            "departments": [Department(id=d["id"], name=d["name"]) for d in results]
-        },
+        template_name="department_list.html", context={"pagination": pagination}
     )
 
 

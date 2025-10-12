@@ -36,7 +36,7 @@
 
         <a href="/employees/register" role="button">新規登録</a>
 
-        {% if employees %}
+        {% if pagination.items or pagination.current_page > 1 %}
         <figure>
             <table role="grid">
                 <thead>
@@ -49,7 +49,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for employee in employees %}
+                    {% for employee in pagination.items %}
                     <tr>
                         <td>{{ employee.id }}</td>
                         <td>{{ employee.name }}</td>
@@ -89,6 +89,21 @@
                 </tbody>
             </table>
         </figure>
+        {% if pagination.total_pages > 1 %}
+        <nav aria-label="ページネーション">
+            <ul style="display: flex; gap: 0.5rem; list-style: none; padding: 0; justify-content: center;">
+                {% if pagination.current_page > 1 %}
+                <li><a href="?page={{ pagination.current_page - 1 }}" role="button" class="secondary">前へ</a></li>
+                {% endif %}
+                {% for p in range(1, pagination.total_pages + 1) %}
+                <li><a href="?page={{ p }}" role="button" class="{% if p == pagination.current_page %}contrast{% else %}secondary{% endif %}">{{ p }}</a></li>
+                {% endfor %}
+                {% if pagination.current_page < pagination.total_pages %}
+                <li><a href="?page={{ pagination.current_page + 1 }}" role="button" class="secondary">次へ</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
         {% else %}
         <p style="text-align: center;">登録されている社員はありません。</p>
         {% endif %}
