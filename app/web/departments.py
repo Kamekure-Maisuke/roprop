@@ -7,6 +7,7 @@ from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Template
 
+from app.cache import delete_cached
 from models import Department, DepartmentTable as D
 
 FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)]
@@ -48,6 +49,7 @@ async def show_department_register_form() -> Template:
 async def register_department(data: FormData) -> Template:
     dept = Department(name=data["name"])
     await D(id=dept.id, name=dept.name).save()
+    await delete_cached("departments:list", "dashboard:stats")
     return Template(template_name="department_register.html", context={"success": True})
 
 
@@ -64,6 +66,7 @@ async def show_department_edit_form(department_id: UUID) -> Template:
 async def edit_department_form(department_id: UUID, data: FormData) -> Redirect:
     await _get_or_404(department_id)
     await D.update({D.name: data["name"]}).where(D.id == department_id)
+    await delete_cached("departments:list", "dashboard:stats")
     return Redirect(path="/departments/view")
 
 
@@ -71,6 +74,7 @@ async def edit_department_form(department_id: UUID, data: FormData) -> Redirect:
 async def delete_department_form(department_id: UUID) -> Redirect:
     await _get_or_404(department_id)
     await D.delete().where(D.id == department_id)
+    await delete_cached("departments:list", "dashboard:stats")
     return Redirect(path="/departments/view")
 
 

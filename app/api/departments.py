@@ -3,6 +3,7 @@ from litestar import Router, delete, get, post, put
 from litestar.exceptions import NotFoundException
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
+from app.cache import delete_cached, get_cached, set_cached
 from models import Department, DepartmentTable as D
 
 
@@ -21,12 +22,17 @@ def _to_department(data: dict) -> Department:
 @post("/departments", status_code=HTTP_201_CREATED)
 async def create_department(data: Department) -> Department:
     await D(id=data.id, name=data.name).save()
+    await delete_cached("departments:list", "dashboard:stats")
     return data
 
 
 @get("/departments")
 async def list_departments() -> list[Department]:
-    return [_to_department(d) for d in await D.select()]
+    if cached := await get_cached("departments:list"):
+        return [Department(**d) for d in cached]
+    result = [_to_department(d) for d in await D.select()]
+    await set_cached("departments:list", [d.__dict__ for d in result])
+    return result
 
 
 @get("/departments/{department_id:uuid}")
@@ -38,6 +44,7 @@ async def get_department(department_id: UUID) -> Department:
 async def update_department(department_id: UUID, data: Department) -> Department:
     await _get_or_404(department_id)
     await D.update({D.name: data.name}).where(D.id == department_id)
+    await delete_cached("departments:list", "dashboard:stats")
     data.id = department_id
     return data
 
@@ -46,6 +53,7 @@ async def update_department(department_id: UUID, data: Department) -> Department
 async def delete_department(department_id: UUID) -> None:
     await _get_or_404(department_id)
     await D.delete().where(D.id == department_id)
+    await delete_cached("departments:list", "dashboard:stats")
 
 
 department_api_router = Router(
