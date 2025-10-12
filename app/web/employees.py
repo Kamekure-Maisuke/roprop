@@ -3,6 +3,7 @@ from uuid import UUID
 from litestar import Router, get, post
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import NotFoundException
+from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Template
 
@@ -22,7 +23,8 @@ async def _get_departments() -> list[Department]:
 
 
 @get("/employees/view")
-async def view_employees() -> Template:
+async def view_employees(page: int = 1) -> Template:
+    page_size, total = 10, await E.count()
     employees = [
         Employee(
             id=e["id"],
@@ -30,14 +32,20 @@ async def view_employees() -> Template:
             email=e["email"],
             department_id=e["department_id"],
         )
-        for e in await E.select()
+        for e in await E.select().limit(page_size).offset((page - 1) * page_size)
     ]
     departments = {
         d["id"]: Department(id=d["id"], name=d["name"]) for d in await D.select()
     }
+    pagination = ClassicPagination(
+        items=employees,
+        page_size=page_size,
+        current_page=page,
+        total_pages=(total + page_size - 1) // page_size,
+    )
     return Template(
         template_name="employee_list.html",
-        context={"employees": employees, "departments": departments},
+        context={"pagination": pagination, "departments": departments},
     )
 
 
