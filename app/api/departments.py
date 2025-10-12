@@ -3,6 +3,7 @@ from litestar import Router, delete, get, post, put
 from litestar.exceptions import NotFoundException
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
+from app.auth import bearer_token_guard
 from app.cache import delete_cached, get_cached, set_cached
 from models import Department, DepartmentTable as D
 
@@ -65,4 +66,6 @@ department_api_router = Router(
         update_department,
         delete_department,
     ],
+    guards=[bearer_token_guard],
+    security=[{"BearerAuth": []}],
 )
