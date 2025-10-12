@@ -23,13 +23,13 @@ def test_api_invalid_bearer_token():
 
 
 @patch("app.auth.API_TOKEN", "test-token")
-def test_api_valid_bearer_token():
+@patch("app.cache.redis")
+def test_api_valid_bearer_token(mock_redis):
     """正しいトークンで認証成功"""
-    with patch("app.cache.get_cached") as mock:
-        mock.return_value = []
-        with TestClient(app=create_app()) as client:
-            res = client.get("/pcs", headers={"Authorization": "Bearer test-token"})
-            assert res.status_code == 200
+    mock_redis.get.return_value = None
+    with TestClient(app=create_app()) as client:
+        res = client.get("/pcs", headers={"Authorization": "Bearer test-token"})
+        assert res.status_code == 200
 
 
 def test_web_basic_auth_required():
