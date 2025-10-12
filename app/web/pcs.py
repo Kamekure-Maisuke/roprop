@@ -8,6 +8,7 @@ from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Response, Template
 
+from app.auth import basic_auth_guard
 from app.cache import delete_cached
 from models import (
     Department,
@@ -390,4 +391,5 @@ pc_web_router = Router(
         export_pcs_tsv,
         export_history_tsv,
     ],
+    guards=[basic_auth_guard],
 )
