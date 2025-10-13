@@ -51,10 +51,11 @@ async def _get_employees_and_departments() -> tuple[
             email=e["email"],
             department_id=e["department_id"],
         )
-        for e in await E.select()
+        for e in await E.select(E.id, E.name, E.email, E.department_id)
     ]
     departments = {
-        d["id"]: Department(id=d["id"], name=d["name"]) for d in await D.select()
+        d["id"]: Department(id=d["id"], name=d["name"])
+        for d in await D.select(D.id, D.name)
     }
     return employees, departments
 
@@ -79,7 +80,7 @@ async def view_pcs(page: int = 1) -> Template:
             email=e["email"],
             department_id=e["department_id"],
         )
-        for e in await E.select()
+        for e in await E.select(E.id, E.name, E.email, E.department_id)
     }
     pagination = ClassicPagination(
         items=pcs,
@@ -227,20 +228,18 @@ async def view_pc_assignment_history(pc_id: UUID) -> Template:
         serial_number=result["serial_number"],
         assigned_to=result["assigned_to"],
     )
-    histories = sorted(
-        [
-            PCAssignmentHistory(
-                id=h["id"],
-                pc_id=h["pc_id"],
-                employee_id=h["employee_id"],
-                assigned_at=h["assigned_at"],
-                notes=h["notes"],
-            )
-            for h in await H.select().where(H.pc_id == pc_id)
-        ],
-        key=lambda h: h.assigned_at,
-        reverse=True,
-    )
+    histories = [
+        PCAssignmentHistory(
+            id=h["id"],
+            pc_id=h["pc_id"],
+            employee_id=h["employee_id"],
+            assigned_at=h["assigned_at"],
+            notes=h["notes"],
+        )
+        for h in await H.select()
+        .where(H.pc_id == pc_id)
+        .order_by(H.assigned_at, ascending=False)
+    ]
     employees = {
         e["id"]: Employee(
             id=e["id"],
@@ -248,7 +247,7 @@ async def view_pc_assignment_history(pc_id: UUID) -> Template:
             email=e["email"],
             department_id=e["department_id"],
         )
-        for e in await E.select()
+        for e in await E.select(E.id, E.name, E.email, E.department_id)
     }
     return Template(
         template_name="pc_history.html",
@@ -259,20 +258,19 @@ async def view_pc_assignment_history(pc_id: UUID) -> Template:
 @get("/history/view")
 async def view_all_assignment_history(page: int = 1) -> Template:
     page_size, total = 10, await H.count()
-    histories = sorted(
-        [
-            PCAssignmentHistory(
-                id=h["id"],
-                pc_id=h["pc_id"],
-                employee_id=h["employee_id"],
-                assigned_at=h["assigned_at"],
-                notes=h["notes"],
-            )
-            for h in await H.select().limit(page_size).offset((page - 1) * page_size)
-        ],
-        key=lambda h: h.assigned_at,
-        reverse=True,
-    )
+    histories = [
+        PCAssignmentHistory(
+            id=h["id"],
+            pc_id=h["pc_id"],
+            employee_id=h["employee_id"],
+            assigned_at=h["assigned_at"],
+            notes=h["notes"],
+        )
+        for h in await H.select()
+        .order_by(H.assigned_at, ascending=False)
+        .limit(page_size)
+        .offset((page - 1) * page_size)
+    ]
     pcs = {
         p["id"]: PC(
             id=p["id"],
@@ -281,7 +279,7 @@ async def view_all_assignment_history(page: int = 1) -> Template:
             serial_number=p["serial_number"],
             assigned_to=p["assigned_to"],
         )
-        for p in await P.select()
+        for p in await P.select(P.id, P.name, P.model, P.serial_number, P.assigned_to)
     }
     employees = {
         e["id"]: Employee(
@@ -290,10 +288,11 @@ async def view_all_assignment_history(page: int = 1) -> Template:
             email=e["email"],
             department_id=e["department_id"],
         )
-        for e in await E.select()
+        for e in await E.select(E.id, E.name, E.email, E.department_id)
     }
     departments = {
-        d["id"]: Department(id=d["id"], name=d["name"]) for d in await D.select()
+        d["id"]: Department(id=d["id"], name=d["name"])
+        for d in await D.select(D.id, D.name)
     }
     pagination = ClassicPagination(
         items=histories,
@@ -323,7 +322,7 @@ async def export_pcs_tsv() -> Response:
             serial_number=p["serial_number"],
             assigned_to=p["assigned_to"],
         )
-        for p in await P.select()
+        for p in await P.select(P.id, P.name, P.model, P.serial_number, P.assigned_to)
     ]
     employees = {
         e["id"]: Employee(
@@ -332,7 +331,7 @@ async def export_pcs_tsv() -> Response:
             email=e["email"],
             department_id=e["department_id"],
         )
-        for e in await E.select()
+        for e in await E.select(E.id, E.name, E.email, E.department_id)
     }
 
     headers = ["ID", "名前", "モデル", "シリアル番号", "割り当て先"]
@@ -361,20 +360,16 @@ async def export_pcs_tsv() -> Response:
 
 @get("/history/export")
 async def export_history_tsv() -> Response:
-    histories = sorted(
-        [
-            PCAssignmentHistory(
-                id=h["id"],
-                pc_id=h["pc_id"],
-                employee_id=h["employee_id"],
-                assigned_at=h["assigned_at"],
-                notes=h["notes"],
-            )
-            for h in await H.select()
-        ],
-        key=lambda h: h.assigned_at,
-        reverse=True,
-    )
+    histories = [
+        PCAssignmentHistory(
+            id=h["id"],
+            pc_id=h["pc_id"],
+            employee_id=h["employee_id"],
+            assigned_at=h["assigned_at"],
+            notes=h["notes"],
+        )
+        for h in await H.select().order_by(H.assigned_at, ascending=False)
+    ]
     pcs = {
         p["id"]: PC(
             id=p["id"],
@@ -383,7 +378,7 @@ async def export_history_tsv() -> Response:
             serial_number=p["serial_number"],
             assigned_to=p["assigned_to"],
         )
-        for p in await P.select()
+        for p in await P.select(P.id, P.name, P.model, P.serial_number, P.assigned_to)
     }
     employees = {
         e["id"]: Employee(
@@ -392,10 +387,11 @@ async def export_history_tsv() -> Response:
             email=e["email"],
             department_id=e["department_id"],
         )
-        for e in await E.select()
+        for e in await E.select(E.id, E.name, E.email, E.department_id)
     }
     departments = {
-        d["id"]: Department(id=d["id"], name=d["name"]) for d in await D.select()
+        d["id"]: Department(id=d["id"], name=d["name"])
+        for d in await D.select(D.id, D.name)
     }
 
     headers = ["割り当て日時", "PC名", "PCモデル", "割り当て先社員", "部署"]

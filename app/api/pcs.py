@@ -147,8 +147,10 @@ async def get_pc_assignment_history(pc_id: UUID) -> list[PCAssignmentHistory]:
 async def list_all_assignment_history() -> list[PCAssignmentHistory]:
     if cached := await get_cached("history:all"):
         return [PCAssignmentHistory(**h) for h in cached]
-    histories = [_to_history(h) for h in await H.select()]
-    result = sorted(histories, key=lambda h: h.assigned_at, reverse=True)
+    result = [
+        _to_history(h)
+        for h in await H.select().order_by(H.assigned_at, ascending=False)
+    ]
     await set_cached("history:all", [h.__dict__ for h in result])
     return result
 
