@@ -15,6 +15,13 @@
                 padding: 0.25rem 0.75rem;
                 font-size: 0.875rem;
             }
+            #bulkDeleteBtn {
+                display: none;
+                margin-left: 1rem;
+            }
+            #bulkDeleteBtn.show {
+                display: inline-block;
+            }
         </style>
     </head>
     <body>
@@ -34,15 +41,18 @@
 
         <h1>PC管理画面</h1>
 
-        <a href="/pcs/register" role="button">新規登録</a>
-
-        <a href="/pcs/export" role="button" class="secondary">エクスポート</a>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+            <a href="/pcs/register" role="button">新規登録</a>
+            <a href="/pcs/export" role="button" class="secondary">エクスポート</a>
+            <button id="bulkDeleteBtn" type="button" class="secondary" onclick="bulkDelete()">選択したPCを削除</button>
+        </div>
 
         {% if pagination.items or pagination.current_page > 1 %}
         <figure>
             <table role="grid">
                 <thead>
                     <tr>
+                        <th><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th>
                         <th>ID</th>
                         <th>名前</th>
                         <th>モデル</th>
@@ -54,6 +64,7 @@
                 <tbody>
                     {% for pc in pagination.items %}
                     <tr>
+                        <td><input type="checkbox" class="pc-checkbox" value="{{ pc.id }}" onchange="updateBulkDeleteBtn()"></td>
                         <td>{{ pc.id }}</td>
                         <td>{{ pc.name }}</td>
                         <td>{{ pc.model }}</td>
@@ -101,5 +112,60 @@
         <p style="text-align: center;">登録されているPCはありません。</p>
         {% endif %}
         </main>
+        <script>
+            function toggleAll(checkbox) {
+                const checkboxes = document.querySelectorAll('.pc-checkbox');
+                checkboxes.forEach(cb => cb.checked = checkbox.checked);
+                updateBulkDeleteBtn();
+            }
+
+            function updateBulkDeleteBtn() {
+                const checkboxes = document.querySelectorAll('.pc-checkbox:checked');
+                const btn = document.getElementById('bulkDeleteBtn');
+                const selectAll = document.getElementById('selectAll');
+                const allCheckboxes = document.querySelectorAll('.pc-checkbox');
+
+                if (checkboxes.length > 0) {
+                    btn.classList.add('show');
+                } else {
+                    btn.classList.remove('show');
+                }
+
+                selectAll.checked = allCheckboxes.length > 0 && checkboxes.length === allCheckboxes.length;
+            }
+
+            async function bulkDelete() {
+                const checkboxes = document.querySelectorAll('.pc-checkbox:checked');
+                const ids = Array.from(checkboxes).map(cb => cb.value);
+
+                if (ids.length === 0) {
+                    alert('削除するPCを選択してください。');
+                    return;
+                }
+
+                if (!confirm(`選択した${ids.length}台のPCを削除しますか？`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/pcs/bulk-delete', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ pc_ids: ids })
+                    });
+
+                    if (response.ok) {
+                        location.reload();
+                    } else {
+                        const error = await response.text();
+                        alert('削除に失敗しました: ' + error);
+                    }
+                } catch (error) {
+                    alert('削除に失敗しました: ' + error.message);
+                }
+            }
+        </script>
     </body>
 </html>

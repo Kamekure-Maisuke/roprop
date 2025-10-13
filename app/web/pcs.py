@@ -7,6 +7,7 @@ from litestar.exceptions import NotFoundException
 from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Response, Template
+from pydantic import BaseModel
 
 from app.auth import basic_auth_guard
 from app.cache import delete_cached
@@ -22,6 +23,10 @@ from models import (
 )
 
 FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)]
+
+
+class BulkDeleteRequest(BaseModel):
+    pc_ids: list[str]
 
 
 async def _get_pc_or_404(pc_id: UUID) -> dict:
@@ -158,6 +163,17 @@ async def delete_pc_form(pc_id: UUID) -> Redirect:
     await P.delete().where(P.id == pc_id)
     await delete_cached("pcs:list", "history:all", "dashboard:stats")
     return Redirect(path="/pcs/view")
+
+
+@post("/pcs/bulk-delete")
+async def bulk_delete_pcs(data: BulkDeleteRequest) -> Response:
+    if not data.pc_ids:
+        return Response(content="削除するPCが選択されていません", status_code=400)
+
+    pc_ids = [UUID(id) for id in data.pc_ids]
+    await P.delete().where(P.id.is_in(pc_ids))
+    await delete_cached("pcs:list", "history:all", "dashboard:stats")
+    return Response(content=f"{len(pc_ids)}台のPCを削除しました", status_code=200)
 
 
 @get("/pcs/{pc_id:uuid}/history/view")
@@ -386,6 +402,7 @@ pc_web_router = Router(
         show_edit_form,
         edit_pc,
         delete_pc_form,
+        bulk_delete_pcs,
         view_pc_assignment_history,
         view_all_assignment_history,
         export_pcs_tsv,
