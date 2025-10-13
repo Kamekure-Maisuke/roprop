@@ -5,7 +5,19 @@ from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
 from app.auth import bearer_token_guard
 from app.cache import delete_cached, get_cached, set_cached
-from models import PC, PCAssignmentHistory, PCAssignmentHistoryTable as H, PCTable as P
+from app.slack import (
+    format_pc_created,
+    format_pc_updated,
+    format_pc_deleted,
+    notify_slack,
+)
+from models import (
+    PC,
+    PCAssignmentHistory,
+    PCAssignmentHistoryTable as H,
+    PCTable as P,
+    EmployeeTable as E,
+)
 
 
 async def _get_or_404(pc_id: UUID) -> dict:
@@ -43,9 +55,25 @@ async def create_pc(data: PC) -> PC:
         serial_number=data.serial_number,
         assigned_to=data.assigned_to,
     ).save()
+
+    # 履歴作成
     if data.assigned_to:
         await H(id=uuid4(), pc_id=data.id, employee_id=data.assigned_to).save()
+
+    # キャッシュ削除
     await delete_cached("pcs:list", "history:all", "dashboard:stats")
+
+    # Slack通知
+    assigned_name = None
+    if data.assigned_to:
+        if emp := await E.select().where(E.id == data.assigned_to).first():
+            assigned_name = emp["name"]
+    await notify_slack(
+        format_pc_created(
+            data.name, data.id, data.model, data.serial_number, assigned_name
+        )
+    )
+
     return data
 
 
@@ -76,16 +104,37 @@ async def update_pc(pc_id: UUID, data: PC) -> PC:
             P.assigned_to: data.assigned_to,
         }
     ).where(P.id == pc_id)
+
+    # キャッシュ削除
     await delete_cached("pcs:list", "history:all", "dashboard:stats")
+
+    # Slack通知
+    assigned_name = None
+    if data.assigned_to:
+        if emp := await E.select().where(E.id == data.assigned_to).first():
+            assigned_name = emp["name"]
+    await notify_slack(
+        format_pc_updated(
+            data.name, pc_id, data.model, data.serial_number, assigned_name
+        )
+    )
+
     data.id = pc_id
     return data
 
 
 @delete("/pcs/{pc_id:uuid}", status_code=HTTP_204_NO_CONTENT)
 async def delete_pc(pc_id: UUID) -> None:
-    await _get_or_404(pc_id)
+    pc = await _get_or_404(pc_id)
     await P.delete().where(P.id == pc_id)
+
+    # キャッシュ削除
     await delete_cached("pcs:list", "history:all", "dashboard:stats")
+
+    # Slack通知
+    await notify_slack(
+        format_pc_deleted(pc["name"], pc_id, pc["model"], pc["serial_number"])
+    )
 
 
 @get("/pcs/{pc_id:uuid}/history")

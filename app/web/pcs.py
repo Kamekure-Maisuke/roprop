@@ -11,6 +11,12 @@ from pydantic import BaseModel
 
 from app.auth import basic_auth_guard
 from app.cache import delete_cached
+from app.slack import (
+    format_pc_created,
+    format_pc_updated,
+    format_pc_deleted,
+    notify_slack,
+)
 from models import (
     Department,
     DepartmentTable as D,
@@ -112,9 +118,23 @@ async def register_pc(data: FormData) -> Template:
         serial_number=pc.serial_number,
         assigned_to=pc.assigned_to,
     ).save()
+
+    # 履歴作成
     if assigned_to:
         await H(id=uuid4(), pc_id=pc.id, employee_id=assigned_to).save()
+
+    # キャッシュ削除
     await delete_cached("pcs:list", "history:all", "dashboard:stats")
+
+    # Slack通知
+    assigned_name = None
+    if assigned_to:
+        if emp := await E.select().where(E.id == assigned_to).first():
+            assigned_name = emp["name"]
+    await notify_slack(
+        format_pc_created(pc.name, pc.id, pc.model, pc.serial_number, assigned_name)
+    )
+
     employees, departments = await _get_employees_and_departments()
     return Template(
         template_name="pc_register.html",
@@ -153,15 +173,36 @@ async def edit_pc(pc_id: UUID, data: FormData) -> Redirect:
             P.assigned_to: assigned_to,
         }
     ).where(P.id == pc_id)
+
+    # キャッシュ削除
     await delete_cached("pcs:list", "history:all", "dashboard:stats")
+
+    # Slack通知
+    assigned_name = None
+    if assigned_to:
+        if emp := await E.select().where(E.id == assigned_to).first():
+            assigned_name = emp["name"]
+    await notify_slack(
+        format_pc_updated(
+            data["name"], pc_id, data["model"], data["serial_number"], assigned_name
+        )
+    )
+
     return Redirect(path="/pcs/view")
 
 
 @post("/pcs/{pc_id:uuid}/delete")
 async def delete_pc_form(pc_id: UUID) -> Redirect:
-    await _get_pc_or_404(pc_id)
+    pc = await _get_pc_or_404(pc_id)
     await P.delete().where(P.id == pc_id)
+
+    # キャッシュ削除
     await delete_cached("pcs:list", "history:all", "dashboard:stats")
+
+    # Slack通知
+    await notify_slack(
+        format_pc_deleted(pc["name"], pc_id, pc["model"], pc["serial_number"])
+    )
     return Redirect(path="/pcs/view")
 
 
