@@ -44,3 +44,22 @@ jobs:
 
       - name: Run pytest
         run: uv run pytest
+
+  dblint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run docker compose
+        uses: hoverkraft-tech/compose-action@b716db5b717cb9b81e391fe638e5aceaa2299e43 # v2.4.0
+        with:
+          compose-file: "./compose.yaml"
+
+      - name: Run dblinter
+        run: |
+          docker run --rm --network host decathlon/dblinter:latest \
+            --dbname postgres \
+            --host localhost \
+            --user postgres \
+            --password postgres \
+            --port 5430
