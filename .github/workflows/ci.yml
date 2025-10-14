@@ -62,4 +62,5 @@ jobs:
             --host localhost \
             --user postgres \
             --password postgres \
-            --port 5430
+            --port 5430 \
+            --loglevel WARNING
