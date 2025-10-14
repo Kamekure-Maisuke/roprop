@@ -59,6 +59,7 @@ def test_web_basic_auth_success():
             "total_pcs": 0,
             "total_employees": 0,
             "total_departments": 0,
+            "alerts": {"resignations": [], "transfers": []},
         }
         with TestClient(app=create_app()) as client:
             credentials = base64.b64encode(b"testname:testpass").decode("utf-8")
