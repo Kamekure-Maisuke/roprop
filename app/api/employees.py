@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from uuid import UUID
 
 from litestar import Router, delete, get, post, put
@@ -27,13 +28,20 @@ def _to_employee(data: dict, include_image: bool = False) -> Employee:
         email=data["email"],
         department_id=data["department_id"],
         profile_image=data.get("profile_image") if include_image else None,
+        resignation_date=data.get("resignation_date"),
+        transfer_date=data.get("transfer_date"),
     )
 
 
 @post("/employees", status_code=HTTP_201_CREATED)
 async def create_employee(data: Employee) -> Employee:
     await E(
-        id=data.id, name=data.name, email=data.email, department_id=data.department_id
+        id=data.id,
+        name=data.name,
+        email=data.email,
+        department_id=data.department_id,
+        resignation_date=data.resignation_date,
+        transfer_date=data.transfer_date,
     ).save()
     await delete_cached("employees:list", "dashboard:stats")
     return data
@@ -57,7 +65,13 @@ async def get_employee(employee_id: UUID) -> Employee:
 async def update_employee(employee_id: UUID, data: Employee) -> Employee:
     await _get_or_404(employee_id)
     await E.update(
-        {E.name: data.name, E.email: data.email, E.department_id: data.department_id}
+        {
+            E.name: data.name,
+            E.email: data.email,
+            E.department_id: data.department_id,
+            E.resignation_date: data.resignation_date,
+            E.transfer_date: data.transfer_date,
+        }
     ).where(E.id == employee_id)
     await delete_cached("employees:list", "dashboard:stats")
     data.id = employee_id
@@ -93,6 +107,24 @@ async def get_profile_image(employee_id: UUID) -> Response:
     return Response(content=bytes(img), media_type="image/webp")
 
 
+@get("/employees/alerts/upcoming")
+async def get_upcoming_alerts(days: int = 7) -> dict:
+    """今日から指定日数以内の退職・異動予定がある社員を取得"""
+    today = date.today()
+    target_date = today + timedelta(days=days)
+
+    employees = await E.select()
+    alerts = {"resignations": [], "transfers": []}
+
+    for emp in employees:
+        if emp["resignation_date"] and today <= emp["resignation_date"] <= target_date:
+            alerts["resignations"].append(_to_employee(emp))
+        if emp["transfer_date"] and today <= emp["transfer_date"] <= target_date:
+            alerts["transfers"].append(_to_employee(emp))
+
+    return alerts
+
+
 employee_api_router = Router(
     path="",
     route_handlers=[
@@ -103,6 +135,7 @@ employee_api_router = Router(
         delete_employee,
         upload_profile_image,
         get_profile_image,
+        get_upcoming_alerts,
     ],
     guards=[bearer_token_guard],
     security=[{"BearerAuth": []}],
