@@ -53,7 +53,7 @@ class DepartmentTable(Table, tablename="departments"):
 class EmployeeTable(Table, tablename="employees"):
     id = PiccoloUUID(primary_key=True)
     name = Varchar(length=255, null=False)
-    email = Varchar(length=255, null=False)
+    email = Varchar(length=255, null=False, unique=True)
     department_id = PiccoloUUID(null=True)
     profile_image = Bytea(null=True)
     resignation_date = Date(null=True)

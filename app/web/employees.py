@@ -8,7 +8,7 @@ from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Response, Template
 
-from app.auth import basic_auth_guard
+from app.auth import session_auth_guard
 from app.cache import delete_cached
 from app.utils import process_profile_image
 from models import Department, DepartmentTable as D, Employee, EmployeeTable as E
@@ -201,5 +201,5 @@ employee_web_router = Router(
         upload_employee_image,
         get_employee_image,
     ],
-    guards=[basic_auth_guard],
+    guards=[session_auth_guard],
 )

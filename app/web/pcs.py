@@ -9,7 +9,7 @@ from litestar.params import Body
 from litestar.response import Redirect, Response, Template
 from pydantic import BaseModel
 
-from app.auth import basic_auth_guard
+from app.auth import session_auth_guard
 from app.cache import delete_cached
 from app.slack import (
     format_pc_created,
@@ -445,5 +445,5 @@ pc_web_router = Router(
         export_pcs_tsv,
         export_history_tsv,
     ],
-    guards=[basic_auth_guard],
+    guards=[session_auth_guard],
 )

@@ -1,4 +1,3 @@
-import base64
 from unittest.mock import patch
 
 from litestar.testing import TestClient
@@ -28,42 +27,3 @@ def test_api_valid_bearer_token():
     with TestClient(app=create_app()) as client:
         res = client.get("/pcs", headers={"Authorization": "Bearer test-token"})
         assert res.status_code == 200
-
-
-def test_web_basic_auth_required():
-    """WebルートはBasic認証が必要"""
-    with TestClient(app=create_app()) as client:
-        response = client.get("/dashboard")
-        assert response.status_code == 401
-        assert "WWW-Authenticate" in response.headers
-
-
-def test_web_basic_auth_failure():
-    """誤ったBasic認証情報は401を返す。"""
-    with TestClient(app=create_app()) as client:
-        credentials = base64.b64encode(b"xxxuser:xxxpass").decode("utf-8")
-        response = client.get(
-            "/dashboard", headers={"Authorization": f"Basic {credentials}"}
-        )
-        assert response.status_code == 401
-
-
-@patch("app.auth.WEB_BASIC_USERNAME", "testname")
-@patch("app.auth.WEB_BASIC_PASSWORD", "testpass")
-def test_web_basic_auth_success():
-    """正しいBasic情報で認証成功"""
-    with patch("app.web.dashboard.get_cached") as mock_cache:
-        mock_cache.return_value = {
-            "dept_stats": [],
-            "unassigned_pc_count": 0,
-            "total_pcs": 0,
-            "total_employees": 0,
-            "total_departments": 0,
-            "alerts": {"resignations": [], "transfers": []},
-        }
-        with TestClient(app=create_app()) as client:
-            credentials = base64.b64encode(b"testname:testpass").decode("utf-8")
-            response = client.get(
-                "/dashboard", headers={"Authorization": f"Basic {credentials}"}
-            )
-            assert response.status_code == 200

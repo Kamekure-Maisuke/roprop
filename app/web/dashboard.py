@@ -4,7 +4,7 @@ from uuid import UUID
 from litestar import Router, get
 from litestar.response import Template
 
-from app.auth import basic_auth_guard
+from app.auth import session_auth_guard
 from app.cache import get_cached, set_cached
 from models import DepartmentTable as D, EmployeeTable as E, PCTable as P
 
@@ -83,5 +83,5 @@ async def view_dashboard() -> Template:
 dashboard_web_router = Router(
     path="",
     route_handlers=[view_dashboard],
-    guards=[basic_auth_guard],
+    guards=[session_auth_guard],
 )
