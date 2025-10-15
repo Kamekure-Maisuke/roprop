@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ja" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コード入力</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .verify-container { max-width: 400px; width: 100%; }
+        .error { color: var(--pico-del-color); margin-top: 0.5rem; }
+        input[type="text"] { text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="verify-container">
+        <article>
+            <h2>ログインコードを入力</h2>
+            <p>{{ email }} に送信されたコードを入力してください</p>
+            <form id="verifyForm">
+                <input type="text" name="otp" placeholder="123456" maxlength="6" pattern="\d{6}" required autofocus>
+                <button type="submit">ログイン</button>
+                <div id="message"></div>
+            </form>
+            <small><a href="/auth/login">メールアドレスを変更</a></small>
+        </article>
+    </div>
+    <script>
+        const email = '{{ email }}';
+        document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const otp = e.target.otp.value;
+            const msg = document.getElementById('message');
+            const btn = e.target.querySelector('button');
+
+            btn.disabled = true;
+            btn.ariaBusy = true;
+            msg.textContent = '';
+
+            try {
+                const res = await fetch('/auth/verify-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, otp })
+                });
+
+                if (res.ok) {
+                    location.href = '/dashboard';
+                } else {
+                    const data = await res.json();
+                    msg.className = 'error';
+                    msg.textContent = data.detail || 'エラーが発生しました';
+                    btn.disabled = false;
+                    btn.ariaBusy = false;
+                    e.target.otp.value = '';
+                }
+            } catch (err) {
+                msg.className = 'error';
+                msg.textContent = '通信エラーが発生しました';
+                btn.disabled = false;
+                btn.ariaBusy = false;
+            }
+        });
+    </script>
+</body>
+</html>

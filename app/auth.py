@@ -1,42 +1,36 @@
-import base64
+import os
 from litestar.connection import ASGIConnection
-from litestar.exceptions import NotAuthorizedException
+from litestar.exceptions import NotAuthorizedException, PermissionDeniedException
 from litestar.handlers.base import BaseRouteHandler
 
-from app.config import API_TOKEN, WEB_BASIC_PASSWORD, WEB_BASIC_USERNAME
+from app.cache import get_cached, redis
+
+API_TOKEN = os.getenv("API_TOKEN", "")
 
 
 async def bearer_token_guard(connection: ASGIConnection, _: BaseRouteHandler) -> None:
-    """Bearer Token認証ガード"""
+    """Bearer Token認証ガード(API用)"""
     auth_header = connection.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         raise NotAuthorizedException(detail="Missing or invalid Authorization header")
-
-    token = auth_header[7:]  # "Bearer "の後のトークン部分
-    if token != API_TOKEN:
+    if auth_header[7:] != API_TOKEN:
         raise NotAuthorizedException(detail="Invalid token")
 
 
-async def basic_auth_guard(connection: ASGIConnection, _: BaseRouteHandler) -> None:
-    """Basic認証ガード"""
-    auth_header = connection.headers.get("Authorization", "")
-    if not auth_header.startswith("Basic "):
-        raise NotAuthorizedException(
-            detail="Unauthorized",
-            headers={"WWW-Authenticate": 'Basic realm="Web UI"'},
-        )
+class SessionExpiredException(PermissionDeniedException):
+    """セッション切れ例外"""
 
-    try:
-        credentials = base64.b64decode(auth_header[6:]).decode("utf-8")
-        username, password = credentials.split(":", 1)
-    except Exception:
-        raise NotAuthorizedException(
-            detail="Invalid credentials format",
-            headers={"WWW-Authenticate": 'Basic realm="Web UI"'},
-        )
+    status_code = 401
 
-    if username != WEB_BASIC_USERNAME or password != WEB_BASIC_PASSWORD:
-        raise NotAuthorizedException(
-            detail="Invalid credentials",
-            headers={"WWW-Authenticate": 'Basic realm="Web UI"'},
-        )
+
+async def session_auth_guard(connection: ASGIConnection, _: BaseRouteHandler) -> None:
+    """セッション認証ガード(Web UI用)"""
+    if not (session_id := connection.cookies.get("session_id")):
+        raise SessionExpiredException(detail="ログインが必要です")
+
+    if not (session_data := await get_cached(f"session:{session_id}")):
+        raise SessionExpiredException(detail="セッションが無効です")
+
+    connection.state.user_id = session_data["user_id"]
+    connection.state.email = session_data["email"]
+    await redis.expire(f"session:{session_id}", 86400)
