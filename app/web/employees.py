@@ -199,6 +199,44 @@ async def get_employee_image(employee_id: UUID) -> Response:
     return Response(content=bytes(img), media_type="image/webp")
 
 
+@get("/mypage")
+async def view_mypage(request: Request) -> Template:
+    from models import PCTable as P
+
+    user_id = request.state.user_id
+    emp = await _get_or_404(user_id)
+    employee = Employee(
+        id=emp["id"],
+        name=emp["name"],
+        email=emp["email"],
+        department_id=emp["department_id"],
+        profile_image=emp.get("profile_image"),
+        role=Role(emp.get("role", Role.USER.value)),
+    )
+    department = None
+    if emp["department_id"]:
+        if dept := await D.select().where(D.id == emp["department_id"]).first():
+            department = Department(id=dept["id"], name=dept["name"])
+    assigned_pc = None
+    if pc := await P.select().where(P.assigned_to == user_id).first():
+        from models import PC
+
+        assigned_pc = PC(
+            id=pc["id"],
+            name=pc["name"],
+            model=pc["model"],
+            serial_number=pc["serial_number"],
+        )
+    return Template(
+        "mypage.html",
+        context={
+            "employee": employee,
+            "department": department,
+            "assigned_pc": assigned_pc,
+        },
+    )
+
+
 employee_web_router = Router(
     path="",
     route_handlers=[
@@ -210,6 +248,7 @@ employee_web_router = Router(
         delete_employee_form,
         upload_employee_image,
         get_employee_image,
+        view_mypage,
     ],
     guards=[session_auth_guard],
 )
