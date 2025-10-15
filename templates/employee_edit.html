@@ -70,6 +70,14 @@
                 <small>異動予定がある場合に入力してください</small>
             </label>
 
+            <label>
+                権限:
+                <select name="role" required>
+                    <option value="user" {% if employee.role.value == 'user' %}selected{% endif %}>一般ユーザー</option>
+                    <option value="admin" {% if employee.role.value == 'admin' %}selected{% endif %}>管理者</option>
+                </select>
+            </label>
+
             <button type="submit">更新</button>
         </form>
 

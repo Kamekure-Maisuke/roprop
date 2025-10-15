@@ -7,7 +7,7 @@ from litestar.exceptions import NotAuthorizedException, TooManyRequestsException
 
 from app.cache import delete_cached, get_cached, redis, set_cached
 from app.utils import send_otp_email
-from models import EmployeeTable
+from models import EmployeeTable, Role
 
 
 @dataclass
@@ -72,6 +72,7 @@ async def verify_otp(data: VerifyOTPRequest) -> Response[dict[str, str]]:
         {
             "user_id": str(employee["id"]),
             "email": data.email,
+            "role": employee.get("role", Role.USER.value),
             "created_at": datetime.now().isoformat(),
         },
         86400,

@@ -1,3 +1,10 @@
+-- Create role enum type
+DO $$ BEGIN
+    CREATE TYPE employee_role AS ENUM ('user', 'admin');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
 -- Create departments table
 CREATE TABLE IF NOT EXISTS departments (
     id UUID PRIMARY KEY,
@@ -10,7 +17,8 @@ CREATE TABLE IF NOT EXISTS employees (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
-    profile_image BYTEA
+    profile_image BYTEA,
+    role employee_role NOT NULL DEFAULT 'user'
 );
 
 -- Create pcs table

@@ -8,10 +8,10 @@ from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Response, Template
 
-from app.auth import session_auth_guard
+from app.auth import admin_guard, session_auth_guard
 from app.cache import delete_cached
 from app.utils import process_profile_image
-from models import Department, DepartmentTable as D, Employee, EmployeeTable as E
+from models import Department, DepartmentTable as D, Employee, EmployeeTable as E, Role
 
 FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)]
 
@@ -27,7 +27,7 @@ async def _get_departments() -> list[Department]:
 
 
 @get("/employees/view")
-async def view_employees(page: int = 1) -> Template:
+async def view_employees(request: Request, page: int = 1) -> Template:
     page_size, total = 10, await E.count()
     employees = [
         Employee(
@@ -51,11 +51,15 @@ async def view_employees(page: int = 1) -> Template:
     )
     return Template(
         template_name="employee_list.html",
-        context={"pagination": pagination, "departments": departments},
+        context={
+            "pagination": pagination,
+            "departments": departments,
+            "user_role": request.state.role.value,
+        },
     )
 
 
-@get("/employees/register")
+@get("/employees/register", guards=[admin_guard])
 async def show_employee_register_form() -> Template:
     return Template(
         template_name="employee_register.html",
@@ -63,7 +67,7 @@ async def show_employee_register_form() -> Template:
     )
 
 
-@post("/employees/register")
+@post("/employees/register", guards=[admin_guard])
 async def register_employee(request: Request) -> Template:
     from datetime import datetime
 
@@ -79,12 +83,14 @@ async def register_employee(request: Request) -> Template:
         if form.get("transfer_date")
         else None
     )
+    role = Role(form.get("role", Role.USER.value))
     emp = Employee(
         name=form["name"],
         email=form["email"],
         department_id=dept_id,
         resignation_date=resignation_date,
         transfer_date=transfer_date,
+        role=role,
     )
 
     profile_image = None
@@ -102,6 +108,7 @@ async def register_employee(request: Request) -> Template:
         profile_image=profile_image,
         resignation_date=emp.resignation_date,
         transfer_date=emp.transfer_date,
+        role=emp.role.value,
     ).save()
     await delete_cached("employees:list", "dashboard:stats")
     return Template(
@@ -110,7 +117,7 @@ async def register_employee(request: Request) -> Template:
     )
 
 
-@get("/employees/{employee_id:uuid}/edit")
+@get("/employees/{employee_id:uuid}/edit", guards=[admin_guard])
 async def show_employee_edit_form(employee_id: UUID) -> Template:
     result = await _get_or_404(employee_id)
     emp = Employee(
@@ -120,6 +127,7 @@ async def show_employee_edit_form(employee_id: UUID) -> Template:
         department_id=result["department_id"],
         resignation_date=result.get("resignation_date"),
         transfer_date=result.get("transfer_date"),
+        role=Role(result.get("role", Role.USER.value)),
     )
     return Template(
         template_name="employee_edit.html",
@@ -127,7 +135,7 @@ async def show_employee_edit_form(employee_id: UUID) -> Template:
     )
 
 
-@post("/employees/{employee_id:uuid}/edit")
+@post("/employees/{employee_id:uuid}/edit", guards=[admin_guard])
 async def edit_employee_form(employee_id: UUID, data: FormData) -> Redirect:
     from datetime import datetime
 
@@ -143,6 +151,7 @@ async def edit_employee_form(employee_id: UUID, data: FormData) -> Redirect:
         if data.get("transfer_date")
         else None
     )
+    role = Role(data.get("role", Role.USER.value))
     await E.update(
         {
             E.name: data["name"],
@@ -150,13 +159,14 @@ async def edit_employee_form(employee_id: UUID, data: FormData) -> Redirect:
             E.department_id: dept_id,
             E.resignation_date: resignation_date,
             E.transfer_date: transfer_date,
+            E.role: role.value,
         }
     ).where(E.id == employee_id)
     await delete_cached("employees:list", "dashboard:stats")
     return Redirect(path="/employees/view")
 
 
-@post("/employees/{employee_id:uuid}/delete")
+@post("/employees/{employee_id:uuid}/delete", guards=[admin_guard])
 async def delete_employee_form(employee_id: UUID) -> Redirect:
     await _get_or_404(employee_id)
     await E.delete().where(E.id == employee_id)
@@ -164,7 +174,7 @@ async def delete_employee_form(employee_id: UUID) -> Redirect:
     return Redirect(path="/employees/view")
 
 
-@post("/employees/{employee_id:uuid}/upload-image")
+@post("/employees/{employee_id:uuid}/upload-image", guards=[admin_guard])
 async def upload_employee_image(employee_id: UUID, request: Request) -> Redirect:
     await _get_or_404(employee_id)
     form = await request.form()

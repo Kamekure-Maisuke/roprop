@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID, uuid4
-from litestar import Router, get, post
+from litestar import Request, Router, get, post
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import NotFoundException
 from litestar.pagination import ClassicPagination
@@ -9,7 +9,7 @@ from litestar.params import Body
 from litestar.response import Redirect, Response, Template
 from pydantic import BaseModel
 
-from app.auth import session_auth_guard
+from app.auth import admin_guard, session_auth_guard
 from app.cache import delete_cached
 from app.slack import (
     format_pc_created,
@@ -61,7 +61,7 @@ async def _get_employees_and_departments() -> tuple[
 
 
 @get("/pcs/view")
-async def view_pcs(page: int = 1) -> Template:
+async def view_pcs(request: Request, page: int = 1) -> Template:
     page_size, total = 10, await P.count()
     pcs = [
         PC(
@@ -90,11 +90,15 @@ async def view_pcs(page: int = 1) -> Template:
     )
     return Template(
         template_name="pc_list.html",
-        context={"pagination": pagination, "employees": employees},
+        context={
+            "pagination": pagination,
+            "employees": employees,
+            "user_role": request.state.role.value,
+        },
     )
 
 
-@get("/pcs/register")
+@get("/pcs/register", guards=[admin_guard])
 async def show_register_form() -> Template:
     employees, departments = await _get_employees_and_departments()
     return Template(
@@ -103,7 +107,7 @@ async def show_register_form() -> Template:
     )
 
 
-@post("/pcs/register")
+@post("/pcs/register", guards=[admin_guard])
 async def register_pc(data: FormData) -> Template:
     assigned_to = UUID(data["assigned_to"]) if data.get("assigned_to") else None
     pc = PC(
@@ -143,7 +147,7 @@ async def register_pc(data: FormData) -> Template:
     )
 
 
-@get("/pcs/{pc_id:uuid}/edit")
+@get("/pcs/{pc_id:uuid}/edit", guards=[admin_guard])
 async def show_edit_form(pc_id: UUID) -> Template:
     result = await _get_pc_or_404(pc_id)
     pc = PC(
@@ -160,7 +164,7 @@ async def show_edit_form(pc_id: UUID) -> Template:
     )
 
 
-@post("/pcs/{pc_id:uuid}/edit")
+@post("/pcs/{pc_id:uuid}/edit", guards=[admin_guard])
 async def edit_pc(pc_id: UUID, data: FormData) -> Redirect:
     old = await _get_pc_or_404(pc_id)
     assigned_to = UUID(data["assigned_to"]) if data.get("assigned_to") else None
@@ -192,7 +196,7 @@ async def edit_pc(pc_id: UUID, data: FormData) -> Redirect:
     return Redirect(path="/pcs/view")
 
 
-@post("/pcs/{pc_id:uuid}/delete")
+@post("/pcs/{pc_id:uuid}/delete", guards=[admin_guard])
 async def delete_pc_form(pc_id: UUID) -> Redirect:
     pc = await _get_pc_or_404(pc_id)
     await P.delete().where(P.id == pc_id)
@@ -207,7 +211,7 @@ async def delete_pc_form(pc_id: UUID) -> Redirect:
     return Redirect(path="/pcs/view")
 
 
-@post("/pcs/bulk-delete")
+@post("/pcs/bulk-delete", guards=[admin_guard])
 async def bulk_delete_pcs(data: BulkDeleteRequest) -> Response:
     if not data.pc_ids:
         return Response(content="削除するPCが選択されていません", status_code=400)

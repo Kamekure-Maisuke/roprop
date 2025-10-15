@@ -34,7 +34,9 @@
 
         <h1>部署管理画面</h1>
 
+        {% if user_role == 'admin' %}
         <a href="/departments/register" role="button">新規登録</a>
+        {% endif %}
 
         {% if pagination.items or pagination.current_page > 1 %}
         <figure>
@@ -52,12 +54,14 @@
                         <td>{{ department.id }}</td>
                         <td>{{ department.name }}</td>
                         <td>
+                            {% if user_role == 'admin' %}
                             <div class="action-buttons">
                                 <a href="/departments/{{ department.id }}/edit" role="button" class="secondary">編集</a>
                                 <form method="POST" action="/departments/{{ department.id }}/delete" style="margin: 0">
                                     <button type="submit" class="secondary" onclick="return confirm('本当に削除しますか？')">削除</button>
                                 </form>
                             </div>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
