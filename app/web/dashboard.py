@@ -1,4 +1,6 @@
+from datetime import date, timedelta
 from uuid import UUID
+
 from litestar import Router, get
 from litestar.response import Template
 
@@ -37,12 +39,42 @@ async def view_dashboard() -> Template:
         elif not pc["assigned_to"]:
             unassigned_pc_count += 1
 
+    # アラート取得(7日以内)
+    today = date.today()
+    target_date = today + timedelta(days=7)
+    alerts = {"resignations": [], "transfers": []}
+
+    # PC割り当て状況を取得
+    pc_assignments = {pc["assigned_to"]: pc for pc in pcs if pc["assigned_to"]}
+
+    for emp in employees:
+        has_pc = emp["id"] in pc_assignments
+        if emp["resignation_date"] and today <= emp["resignation_date"] <= target_date:
+            alerts["resignations"].append(
+                {
+                    "name": emp["name"],
+                    "date": emp["resignation_date"].isoformat(),
+                    "days_left": (emp["resignation_date"] - today).days,
+                    "returned": not has_pc,
+                }
+            )
+        if emp["transfer_date"] and today <= emp["transfer_date"] <= target_date:
+            alerts["transfers"].append(
+                {
+                    "name": emp["name"],
+                    "date": emp["transfer_date"].isoformat(),
+                    "days_left": (emp["transfer_date"] - today).days,
+                    "returned": not has_pc,
+                }
+            )
+
     context = {
         "dept_stats": list(dept_stats.values()),
         "unassigned_pc_count": unassigned_pc_count,
         "total_pcs": len(pcs),
         "total_employees": len(employees),
         "total_departments": len(departments),
+        "alerts": alerts,
     }
     await set_cached("dashboard:stats", context)
     return Template(template_name="dashboard.html", context=context)

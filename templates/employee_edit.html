@@ -58,6 +58,18 @@
                 </select>
             </label>
 
+            <label>
+                退職予定日 (任意):
+                <input type="date" name="resignation_date" value="{% if employee.resignation_date %}{{ employee.resignation_date }}{% endif %}" />
+                <small>退職予定がある場合に入力してください</small>
+            </label>
+
+            <label>
+                異動予定日 (任意):
+                <input type="date" name="transfer_date" value="{% if employee.transfer_date %}{{ employee.transfer_date }}{% endif %}" />
+                <small>異動予定がある場合に入力してください</small>
+            </label>
+
             <button type="submit">更新</button>
         </form>
 

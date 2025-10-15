@@ -35,6 +35,8 @@ async def view_employees(page: int = 1) -> Template:
             name=e["name"],
             email=e["email"],
             department_id=e["department_id"],
+            resignation_date=e.get("resignation_date"),
+            transfer_date=e.get("transfer_date"),
         )
         for e in await E.select().limit(page_size).offset((page - 1) * page_size)
     ]
@@ -63,9 +65,27 @@ async def show_employee_register_form() -> Template:
 
 @post("/employees/register")
 async def register_employee(request: Request) -> Template:
+    from datetime import datetime
+
     form = await request.form()
     dept_id = UUID(form["department_id"]) if form.get("department_id") else None
-    emp = Employee(name=form["name"], email=form["email"], department_id=dept_id)
+    resignation_date = (
+        datetime.fromisoformat(form["resignation_date"]).date()
+        if form.get("resignation_date")
+        else None
+    )
+    transfer_date = (
+        datetime.fromisoformat(form["transfer_date"]).date()
+        if form.get("transfer_date")
+        else None
+    )
+    emp = Employee(
+        name=form["name"],
+        email=form["email"],
+        department_id=dept_id,
+        resignation_date=resignation_date,
+        transfer_date=transfer_date,
+    )
 
     profile_image = None
     if file := form.get("profile_image"):
@@ -80,6 +100,8 @@ async def register_employee(request: Request) -> Template:
         email=emp.email,
         department_id=emp.department_id,
         profile_image=profile_image,
+        resignation_date=emp.resignation_date,
+        transfer_date=emp.transfer_date,
     ).save()
     await delete_cached("employees:list", "dashboard:stats")
     return Template(
@@ -96,6 +118,8 @@ async def show_employee_edit_form(employee_id: UUID) -> Template:
         name=result["name"],
         email=result["email"],
         department_id=result["department_id"],
+        resignation_date=result.get("resignation_date"),
+        transfer_date=result.get("transfer_date"),
     )
     return Template(
         template_name="employee_edit.html",
@@ -105,10 +129,28 @@ async def show_employee_edit_form(employee_id: UUID) -> Template:
 
 @post("/employees/{employee_id:uuid}/edit")
 async def edit_employee_form(employee_id: UUID, data: FormData) -> Redirect:
+    from datetime import datetime
+
     await _get_or_404(employee_id)
     dept_id = UUID(data["department_id"]) if data.get("department_id") else None
+    resignation_date = (
+        datetime.fromisoformat(data["resignation_date"]).date()
+        if data.get("resignation_date")
+        else None
+    )
+    transfer_date = (
+        datetime.fromisoformat(data["transfer_date"]).date()
+        if data.get("transfer_date")
+        else None
+    )
     await E.update(
-        {E.name: data["name"], E.email: data["email"], E.department_id: dept_id}
+        {
+            E.name: data["name"],
+            E.email: data["email"],
+            E.department_id: dept_id,
+            E.resignation_date: resignation_date,
+            E.transfer_date: transfer_date,
+        }
     ).where(E.id == employee_id)
     await delete_cached("employees:list", "dashboard:stats")
     return Redirect(path="/employees/view")
