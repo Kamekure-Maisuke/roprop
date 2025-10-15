@@ -1,11 +1,17 @@
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from uuid import UUID, uuid4
 
 from piccolo.columns import Bytea, Date, Text, Timestamp, UUID as PiccoloUUID, Varchar
 from piccolo.table import Table
 
 from app.database import DB
+
+
+class Role(str, Enum):
+    USER = "user"
+    ADMIN = "admin"
 
 
 # Dataclassモデル (API入出力用)
@@ -24,6 +30,7 @@ class Employee:
     profile_image: bytes | None = None
     resignation_date: datetime | None = None
     transfer_date: datetime | None = None
+    role: Role = Role.USER
 
 
 @dataclass
@@ -58,6 +65,7 @@ class EmployeeTable(Table, tablename="employees"):
     profile_image = Bytea(null=True)
     resignation_date = Date(null=True)
     transfer_date = Date(null=True)
+    role = Varchar(length=50, null=False, default=Role.USER.value)
 
 
 class PCTable(Table, tablename="pcs"):

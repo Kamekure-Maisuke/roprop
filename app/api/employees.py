@@ -12,7 +12,7 @@ from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from app.auth import bearer_token_guard
 from app.cache import delete_cached, get_cached, set_cached
 from app.utils import process_profile_image
-from models import Employee, EmployeeTable as E
+from models import Employee, EmployeeTable as E, Role
 
 
 async def _get_or_404(employee_id: UUID) -> dict:
@@ -30,6 +30,7 @@ def _to_employee(data: dict, include_image: bool = False) -> Employee:
         profile_image=data.get("profile_image") if include_image else None,
         resignation_date=data.get("resignation_date"),
         transfer_date=data.get("transfer_date"),
+        role=Role(data.get("role", Role.USER.value)),
     )
 
 
@@ -42,6 +43,7 @@ async def create_employee(data: Employee) -> Employee:
         department_id=data.department_id,
         resignation_date=data.resignation_date,
         transfer_date=data.transfer_date,
+        role=data.role.value,
     ).save()
     await delete_cached("employees:list", "dashboard:stats")
     return data
@@ -71,6 +73,7 @@ async def update_employee(employee_id: UUID, data: Employee) -> Employee:
             E.department_id: data.department_id,
             E.resignation_date: data.resignation_date,
             E.transfer_date: data.transfer_date,
+            E.role: data.role.value,
         }
     ).where(E.id == employee_id)
     await delete_cached("employees:list", "dashboard:stats")

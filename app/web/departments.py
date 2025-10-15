@@ -1,13 +1,13 @@
 from typing import Annotated
 from uuid import UUID
-from litestar import Router, get, post
+from litestar import Request, Router, get, post
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import NotFoundException
 from litestar.pagination import ClassicPagination
 from litestar.params import Body
 from litestar.response import Redirect, Template
 
-from app.auth import session_auth_guard
+from app.auth import admin_guard, session_auth_guard
 from app.cache import delete_cached
 from models import Department, DepartmentTable as D
 
@@ -22,7 +22,7 @@ async def _get_or_404(department_id: UUID) -> dict:
 
 
 @get("/departments/view")
-async def view_departments(page: int = 1) -> Template:
+async def view_departments(request: Request, page: int = 1) -> Template:
     page_size, total = 10, await D.count()
     departments = [
         Department(id=d["id"], name=d["name"])
@@ -35,18 +35,19 @@ async def view_departments(page: int = 1) -> Template:
         total_pages=(total + page_size - 1) // page_size,
     )
     return Template(
-        template_name="department_list.html", context={"pagination": pagination}
+        template_name="department_list.html",
+        context={"pagination": pagination, "user_role": request.state.role.value},
     )
 
 
-@get("/departments/register")
+@get("/departments/register", guards=[admin_guard])
 async def show_department_register_form() -> Template:
     return Template(
         template_name="department_register.html", context={"success": False}
     )
 
 
-@post("/departments/register")
+@post("/departments/register", guards=[admin_guard])
 async def register_department(data: FormData) -> Template:
     dept = Department(name=data["name"])
     await D(id=dept.id, name=dept.name).save()
@@ -54,7 +55,7 @@ async def register_department(data: FormData) -> Template:
     return Template(template_name="department_register.html", context={"success": True})
 
 
-@get("/departments/{department_id:uuid}/edit")
+@get("/departments/{department_id:uuid}/edit", guards=[admin_guard])
 async def show_department_edit_form(department_id: UUID) -> Template:
     result = await _get_or_404(department_id)
     return Template(
@@ -63,7 +64,7 @@ async def show_department_edit_form(department_id: UUID) -> Template:
     )
 
 
-@post("/departments/{department_id:uuid}/edit")
+@post("/departments/{department_id:uuid}/edit", guards=[admin_guard])
 async def edit_department_form(department_id: UUID, data: FormData) -> Redirect:
     await _get_or_404(department_id)
     await D.update({D.name: data["name"]}).where(D.id == department_id)
@@ -71,7 +72,7 @@ async def edit_department_form(department_id: UUID, data: FormData) -> Redirect:
     return Redirect(path="/departments/view")
 
 
-@post("/departments/{department_id:uuid}/delete")
+@post("/departments/{department_id:uuid}/delete", guards=[admin_guard])
 async def delete_department_form(department_id: UUID) -> Redirect:
     await _get_or_404(department_id)
     await D.delete().where(D.id == department_id)

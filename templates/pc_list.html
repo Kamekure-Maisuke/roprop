@@ -42,9 +42,13 @@
         <h1>PC管理画面</h1>
 
         <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+            {% if user_role == 'admin' %}
             <a href="/pcs/register" role="button">新規登録</a>
+            {% endif %}
             <a href="/pcs/export" role="button" class="secondary">エクスポート</a>
+            {% if user_role == 'admin' %}
             <button id="bulkDeleteBtn" type="button" class="secondary" onclick="bulkDelete()">選択したPCを削除</button>
+            {% endif %}
         </div>
 
         {% if pagination.items or pagination.current_page > 1 %}
@@ -52,7 +56,9 @@
             <table role="grid">
                 <thead>
                     <tr>
+                        {% if user_role == 'admin' %}
                         <th><input type="checkbox" id="selectAll" onchange="toggleAll(this)"></th>
+                        {% endif %}
                         <th>ID</th>
                         <th>名前</th>
                         <th>モデル</th>
@@ -64,7 +70,9 @@
                 <tbody>
                     {% for pc in pagination.items %}
                     <tr>
+                        {% if user_role == 'admin' %}
                         <td><input type="checkbox" class="pc-checkbox" value="{{ pc.id }}" onchange="updateBulkDeleteBtn()"></td>
+                        {% endif %}
                         <td>{{ pc.id }}</td>
                         <td>{{ pc.name }}</td>
                         <td>{{ pc.model }}</td>
@@ -80,11 +88,15 @@
                         </td>
                         <td>
                             <div class="action-buttons">
+                                {% if user_role == 'admin' %}
                                 <a href="/pcs/{{ pc.id }}/edit" role="button" class="secondary">編集</a>
+                                {% endif %}
                                 <a href="/pcs/{{ pc.id }}/history/view" role="button" class="contrast">履歴</a>
+                                {% if user_role == 'admin' %}
                                 <form method="POST" action="/pcs/{{ pc.id }}/delete" style="margin: 0">
                                     <button type="submit" class="secondary" onclick="return confirm('本当に削除しますか？')">削除</button>
                                 </form>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>

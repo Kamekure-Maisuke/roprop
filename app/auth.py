@@ -4,6 +4,7 @@ from litestar.exceptions import NotAuthorizedException, PermissionDeniedExceptio
 from litestar.handlers.base import BaseRouteHandler
 
 from app.cache import get_cached, redis
+from models import Role
 
 API_TOKEN = os.getenv("API_TOKEN", "")
 
@@ -33,4 +34,12 @@ async def session_auth_guard(connection: ASGIConnection, _: BaseRouteHandler) ->
 
     connection.state.user_id = session_data["user_id"]
     connection.state.email = session_data["email"]
+    connection.state.role = Role(session_data.get("role", Role.USER.value))
     await redis.expire(f"session:{session_id}", 86400)
+
+
+async def admin_guard(connection: ASGIConnection, _: BaseRouteHandler) -> None:
+    """管理者権限ガード"""
+    await session_auth_guard(connection, _)
+    if connection.state.role != Role.ADMIN:
+        raise PermissionDeniedException(detail="管理者権限が必要です")
