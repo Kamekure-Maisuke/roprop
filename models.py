@@ -3,7 +3,15 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from piccolo.columns import Bytea, Date, Text, Timestamp, UUID as PiccoloUUID, Varchar
+from piccolo.columns import (
+    Bytea,
+    Boolean,
+    Date,
+    Text,
+    Timestamp,
+    UUID as PiccoloUUID,
+    Varchar,
+)
 from piccolo.table import Table
 
 from app.database import DB
@@ -51,6 +59,16 @@ class PCAssignmentHistory:
     notes: str = ""
 
 
+@dataclass
+class ChatMessage:
+    id: UUID = field(default_factory=uuid4)
+    sender_id: UUID = field(default_factory=uuid4)
+    receiver_id: UUID = field(default_factory=uuid4)
+    content: str = ""
+    created_at: datetime = field(default_factory=datetime.now)
+    is_read: bool = False
+
+
 # Piccoloテーブル (ORM)
 class DepartmentTable(Table, tablename="departments"):
     id = PiccoloUUID(primary_key=True)
@@ -84,6 +102,21 @@ class PCAssignmentHistoryTable(Table, tablename="pc_assignment_histories"):
     notes = Text(default="")
 
 
+class ChatMessageTable(Table, tablename="chat_messages"):
+    id = PiccoloUUID(primary_key=True)
+    sender_id = PiccoloUUID(null=False)
+    receiver_id = PiccoloUUID(null=False)
+    content = Text(null=False)
+    created_at = Timestamp(null=False)
+    is_read = Boolean(default=False)
+
+
 # データベースエンジン設定
-for table in [DepartmentTable, EmployeeTable, PCTable, PCAssignmentHistoryTable]:
+for table in [
+    DepartmentTable,
+    EmployeeTable,
+    PCTable,
+    PCAssignmentHistoryTable,
+    ChatMessageTable,
+]:
     table._meta._db = DB
