@@ -6,6 +6,8 @@ from litestar.template.config import TemplateConfig
 from litestar.openapi.config import OpenAPIConfig
 from litestar.openapi.spec import Components, SecurityScheme
 
+from litestar_granian import GranianPlugin
+
 from app.api.auth import auth_router
 from app.api.pcs import pc_api_router
 from app.api.employees import employee_api_router
@@ -34,6 +36,7 @@ def session_expired_handler(request: Request, exc: SessionExpiredException) -> R
 
 def create_app() -> Litestar:
     return Litestar(
+        plugins=[GranianPlugin()],
         route_handlers=[
             auth_router,
             auth_web_router,
