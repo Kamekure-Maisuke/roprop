@@ -32,7 +32,10 @@
         <form method="POST" action="/pcs/register">
             <label>
                 名前:
-                <input type="text" name="name" required />
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" name="name" id="pc-name" required style="flex: 1;" />
+                    <button type="button" onclick="generateRandomName()">🎲</button>
+                </div>
             </label>
 
             <label>
@@ -65,5 +68,12 @@
 
         <a href="/pcs/view" role="button" class="secondary">← 一覧に戻る</a>
         </main>
+        <script>
+            async function generateRandomName() {
+                const response = await fetch('/pcs/random-name');
+                const data = await response.json();
+                document.getElementById('pc-name').value = data.name;
+            }
+        </script>
     </body>
 </html>

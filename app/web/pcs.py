@@ -17,6 +17,7 @@ from app.slack import (
     format_pc_deleted,
     notify_slack,
 )
+from app.utils import generate_random_pc_name
 from models import (
     Department,
     DepartmentTable as D,
@@ -385,6 +386,12 @@ async def export_pcs_tsv() -> Response:
     )
 
 
+@get("/pcs/random-name")
+async def get_random_pc_name_web() -> Response:
+    """ランダムなPC名を生成 (Web用)"""
+    return Response(content={"name": generate_random_pc_name()})
+
+
 @get("/history/export")
 async def export_history_tsv() -> Response:
     histories = [
@@ -470,6 +477,7 @@ pc_web_router = Router(
         bulk_delete_pcs,
         view_pc_assignment_history,
         view_all_assignment_history,
+        get_random_pc_name_web,
         export_pcs_tsv,
         export_history_tsv,
     ],
