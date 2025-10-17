@@ -11,7 +11,7 @@ docker compose up
 cp .env.sample .env
 
 # 実行
-uv run uvicorn main:app --reload
+uv run litestar --app main:app run
 
 # lint
 uv run ruff check
