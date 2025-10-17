@@ -1,110 +1,88 @@
-<!doctype html>
-<html lang="ja" data-theme="light">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>社員管理画面</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-        <style>
-            .action-buttons {
-                display: flex;
-                gap: 0.5rem;
-            }
-            .action-buttons a, .action-buttons button {
-                margin: 0;
-                padding: 0.25rem 0.75rem;
-                font-size: 0.875rem;
-            }
-        </style>
-    </head>
-    <body>
-        <nav>
-            <ul>
-                <li><strong>リソース管理システム</strong></li>
-            </ul>
-            <ul>
-                <li><a href="/dashboard">ダッシュボード</a></li>
-                <li><a href="/pcs/view">PC管理</a></li>
-                <li><a href="/employees/view">社員管理</a></li>
-                <li><a href="/departments/view">部署管理</a></li>
-                <li><a href="/history/view">履歴管理</a></li>
-                <li><a href="/blogs/view">ブログ</a></li>
-                <li><a href="/blogs/my">マイブログ</a></li>
-                <li><a href="/mypage">マイページ</a></li>
-            </ul>
-        </nav>
-        <main class="container">
+{% extends "base.html" %}
 
-        <h1>社員管理画面</h1>
+{% block title %}社員管理{% endblock %}
 
-        {% if user_role == 'admin' %}
-        <a href="/employees/register" role="button">新規登録</a>
-        {% endif %}
+{% block extra_head %}
+<style>
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .action-buttons a, .action-buttons button {
+        margin: 0;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
 
-        {% if pagination.items or pagination.current_page > 1 %}
-        <figure>
-            <table role="grid">
-                <thead>
-                    <tr>
-                        <th>画像</th>
-                        <th>ID</th>
-                        <th>名前</th>
-                        <th>メールアドレス</th>
-                        <th>部署</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for employee in pagination.items %}
-                    <tr>
-                        <td style="text-align: center;">
-                            <img src="/employees/{{ employee.id }}/image" alt="" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;" onload="if(this.naturalWidth===1)this.style.display='none'" onerror="this.style.display='none'">
-                            <span style="color: #999;">-</span>
-                        </td>
-                        <td>{{ employee.id }}</td>
-                        <td>{{ employee.name }}</td>
-                        <td>{{ employee.email }}</td>
-                        <td>
-                            {% if employee.department_id and employee.department_id in departments %}
-                            {{ departments[employee.department_id].name }}
-                            {% else %}
-                            未設定
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                <a href="/employees/{{ employee.id }}/show" role="button" class="contrast">詳細</a>
-                                {% if user_role == 'admin' %}
-                                <a href="/employees/{{ employee.id }}/edit" role="button" class="secondary">編集</a>
-                                <form method="POST" action="/employees/{{ employee.id }}/delete" style="margin: 0">
-                                    <button type="submit" class="secondary" onclick="return confirm('本当に削除しますか？')">削除</button>
-                                </form>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </figure>
-        {% if pagination.total_pages > 1 %}
-        <nav aria-label="ページネーション">
-            <ul style="display: flex; gap: 0.5rem; list-style: none; padding: 0; justify-content: center;">
-                {% if pagination.current_page > 1 %}
-                <li><a href="?page={{ pagination.current_page - 1 }}" role="button" class="secondary">前へ</a></li>
-                {% endif %}
-                {% for p in range(1, pagination.total_pages + 1) %}
-                <li><a href="?page={{ p }}" role="button" class="{% if p == pagination.current_page %}contrast{% else %}secondary{% endif %}">{{ p }}</a></li>
-                {% endfor %}
-                {% if pagination.current_page < pagination.total_pages %}
-                <li><a href="?page={{ pagination.current_page + 1 }}" role="button" class="secondary">次へ</a></li>
-                {% endif %}
-            </ul>
-        </nav>
+{% block content %}
+{% if user_role == 'admin' %}
+<a href="/employees/register" role="button">新規登録</a>
+{% endif %}
+
+{% if pagination.items or pagination.current_page > 1 %}
+<figure>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>画像</th>
+                <th>ID</th>
+                <th>名前</th>
+                <th>メールアドレス</th>
+                <th>部署</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for employee in pagination.items %}
+            <tr>
+                <td style="text-align: center;">
+                    <img src="/employees/{{ employee.id }}/image" alt="" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;" onload="if(this.naturalWidth===1)this.style.display='none'" onerror="this.style.display='none'">
+                    <span style="color: #999;">-</span>
+                </td>
+                <td>{{ employee.id }}</td>
+                <td>{{ employee.name }}</td>
+                <td>{{ employee.email }}</td>
+                <td>
+                    {% if employee.department_id and employee.department_id in departments %}
+                    {{ departments[employee.department_id].name }}
+                    {% else %}
+                    未設定
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="/employees/{{ employee.id }}/show" role="button" class="contrast">詳細</a>
+                        {% if user_role == 'admin' %}
+                        <a href="/employees/{{ employee.id }}/edit" role="button" class="secondary">編集</a>
+                        <form method="POST" action="/employees/{{ employee.id }}/delete" style="margin: 0">
+                            <button type="submit" class="secondary" onclick="return confirm('本当に削除しますか？')">削除</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</figure>
+{% if pagination.total_pages > 1 %}
+<nav aria-label="ページネーション">
+    <ul style="display: flex; gap: 0.5rem; list-style: none; padding: 0; justify-content: center;">
+        {% if pagination.current_page > 1 %}
+        <li><a href="?page={{ pagination.current_page - 1 }}" role="button" class="secondary">前へ</a></li>
         {% endif %}
-        {% else %}
-        <p style="text-align: center;">登録されている社員はありません。</p>
+        {% for p in range(1, pagination.total_pages + 1) %}
+        <li><a href="?page={{ p }}" role="button" class="{% if p == pagination.current_page %}contrast{% else %}secondary{% endif %}">{{ p }}</a></li>
+        {% endfor %}
+        {% if pagination.current_page < pagination.total_pages %}
+        <li><a href="?page={{ pagination.current_page + 1 }}" role="button" class="secondary">次へ</a></li>
         {% endif %}
-        </main>
-    </body>
-</html>
+    </ul>
+</nav>
+{% endif %}
+{% else %}
+<p style="text-align: center;">登録されている社員はありません。</p>
+{% endif %}
+{% endblock %}

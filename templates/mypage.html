@@ -1,125 +1,104 @@
-<!doctype html>
-<html lang="ja" data-theme="light">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>マイページ</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-        <style>
-            .profile-card {
-                max-width: 600px;
-                margin: 0 auto;
-            }
-            .profile-image {
-                width: 150px;
-                height: 150px;
-                border-radius: 50%;
-                object-fit: cover;
-                margin: 0 auto;
-                display: block;
-            }
-            .info-grid {
-                display: grid;
-                gap: 1rem;
-            }
-            .info-item {
-                padding: 1rem;
-                background: var(--pico-background-color);
-                border-radius: var(--pico-border-radius);
-                border: 1px solid var(--pico-muted-border-color);
-            }
-            .info-label {
-                font-weight: bold;
-                color: var(--pico-muted-color);
-                font-size: 0.875rem;
-                margin-bottom: 0.25rem;
-            }
-            .info-value {
-                font-size: 1rem;
-            }
-        </style>
-    </head>
-    <body>
-        <nav>
-            <ul>
-                <li><strong>リソース管理システム</strong></li>
-            </ul>
-            <ul>
-                <li><a href="/dashboard">ダッシュボード</a></li>
-                <li><a href="/pcs/view">PC管理</a></li>
-                <li><a href="/employees/view">社員管理</a></li>
-                <li><a href="/departments/view">部署管理</a></li>
-                <li><a href="/history/view">履歴管理</a></li>
-                <li><a href="/blogs/view">ブログ</a></li>
-                <li><a href="/blogs/my">マイブログ</a></li>
-                <li><a href="/mypage">マイページ</a></li>
-            </ul>
-        </nav>
-        <main class="container">
-            <h1>マイページ</h1>
+{% extends "base.html" %}
 
-            <article class="profile-card">
-                <header style="text-align: center;">
-                    {% if employee.profile_image %}
-                    <img src="/employees/{{ employee.id }}/image" alt="プロフィール画像" class="profile-image">
-                    {% else %}
-                    <div style="width: 150px; height: 150px; border-radius: 50%; background: var(--pico-muted-border-color); margin: 0 auto; display: flex; align-items: center; justify-content: center; color: var(--pico-muted-color); font-size: 3rem;">
-                        👤
-                    </div>
-                    {% endif %}
-                    <h2 style="margin-top: 1rem;">{{ employee.name }}</h2>
-                </header>
+{% block title %}マイページ{% endblock %}
 
-                <div class="info-grid">
-                    <div class="info-item">
-                        <div class="info-label">メールアドレス</div>
-                        <div class="info-value">{{ employee.email }}</div>
-                    </div>
+{% block extra_head %}
+<style>
+    .profile-card {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .profile-image {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto;
+        display: block;
+    }
+    .info-grid {
+        display: grid;
+        gap: 1rem;
+    }
+    .info-item {
+        padding: 1rem;
+        background: var(--pico-background-color);
+        border-radius: var(--pico-border-radius);
+        border: 1px solid var(--pico-muted-border-color);
+    }
+    .info-label {
+        font-weight: bold;
+        color: var(--pico-muted-color);
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+    .info-value {
+        font-size: 1rem;
+    }
+</style>
+{% endblock %}
 
-                    <div class="info-item">
-                        <div class="info-label">所属部署</div>
-                        <div class="info-value">
-                            {% if department %}
-                            {{ department.name }}
-                            {% else %}
-                            未設定
-                            {% endif %}
-                        </div>
-                    </div>
+{% block content %}
+<article class="profile-card">
+    <header style="text-align: center;">
+        {% if employee.profile_image %}
+        <img src="/employees/{{ employee.id }}/image" alt="プロフィール画像" class="profile-image">
+        {% else %}
+        <div style="width: 150px; height: 150px; border-radius: 50%; background: var(--pico-muted-border-color); margin: 0 auto; display: flex; align-items: center; justify-content: center; color: var(--pico-muted-color); font-size: 3rem;">
+            👤
+        </div>
+        {% endif %}
+        <h2 style="margin-top: 1rem;">{{ employee.name }}</h2>
+    </header>
 
-                    <div class="info-item">
-                        <div class="info-label">社員ID</div>
-                        <div class="info-value">{{ employee.id }}</div>
-                    </div>
+    <div class="info-grid">
+        <div class="info-item">
+            <div class="info-label">メールアドレス</div>
+            <div class="info-value">{{ employee.email }}</div>
+        </div>
 
-                    <div class="info-item">
-                        <div class="info-label">権限</div>
-                        <div class="info-value">
-                            {% if employee.role.value == 'admin' %}
-                            管理者
-                            {% else %}
-                            一般ユーザー
-                            {% endif %}
-                        </div>
-                    </div>
+        <div class="info-item">
+            <div class="info-label">所属部署</div>
+            <div class="info-value">
+                {% if department %}
+                {{ department.name }}
+                {% else %}
+                未設定
+                {% endif %}
+            </div>
+        </div>
 
-                    {% if assigned_pc %}
-                    <div class="info-item">
-                        <div class="info-label">割り当てPC</div>
-                        <div class="info-value">
-                            <strong>{{ assigned_pc.name }}</strong><br>
-                            <small>モデル: {{ assigned_pc.model }}</small><br>
-                            <small>シリアル番号: {{ assigned_pc.serial_number }}</small>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="info-item">
-                        <div class="info-label">割り当てPC</div>
-                        <div class="info-value">割り当てなし</div>
-                    </div>
-                    {% endif %}
-                </div>
-            </article>
-        </main>
-    </body>
-</html>
+        <div class="info-item">
+            <div class="info-label">社員ID</div>
+            <div class="info-value">{{ employee.id }}</div>
+        </div>
+
+        <div class="info-item">
+            <div class="info-label">権限</div>
+            <div class="info-value">
+                {% if employee.role.value == 'admin' %}
+                管理者
+                {% else %}
+                一般ユーザー
+                {% endif %}
+            </div>
+        </div>
+
+        {% if assigned_pc %}
+        <div class="info-item">
+            <div class="info-label">割り当てPC</div>
+            <div class="info-value">
+                <strong>{{ assigned_pc.name }}</strong><br>
+                <small>モデル: {{ assigned_pc.model }}</small><br>
+                <small>シリアル番号: {{ assigned_pc.serial_number }}</small>
+            </div>
+        </div>
+        {% else %}
+        <div class="info-item">
+            <div class="info-label">割り当てPC</div>
+            <div class="info-value">割り当てなし</div>
+        </div>
+        {% endif %}
+    </div>
+</article>
+{% endblock %}

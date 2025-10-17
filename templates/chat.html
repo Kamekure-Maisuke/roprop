@@ -1,228 +1,213 @@
-<!doctype html>
-<html lang="ja" data-theme="light">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>チャット</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-        <style>
-            body { margin: 0; height: 100vh; display: flex; flex-direction: column; }
-            .chat-container { flex: 1; display: flex; overflow: hidden; gap: 1rem; padding: 1rem; }
-            .user-list { width: 250px; overflow-y: auto; border-right: 1px solid var(--pico-muted-border-color); padding-right: 1rem; }
-            .user-item { padding: 0.5rem; margin-bottom: 0.25rem; cursor: pointer; border-radius: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
-            .user-item:hover { background: var(--pico-secondary-background); }
-            .user-item.active { background: var(--pico-primary-background); color: white; }
-            .unread-badge { background: var(--pico-primary); color: white; border-radius: 50%; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; padding: 0 0.25rem; margin-left: auto; }
-            .user-item.active .unread-badge { background: white; color: var(--pico-primary); }
-            .chat-area { flex: 1; display: flex; flex-direction: column; }
-            .chat-header { padding: 1rem; border-bottom: 1px solid var(--pico-muted-border-color); }
-            .messages-container { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-            .message { display: flex; gap: 0.5rem; max-width: 70%; }
-            .message.sent { align-self: flex-end; }
-            .message.received { align-self: flex-start; }
-            .message-content { padding: 0.5rem 1rem; border-radius: 1rem; }
-            .message.sent .message-content { background: var(--pico-primary); color: white; }
-            .message.received .message-content { background: var(--pico-card-background-color); }
-            .message-info { display: flex; gap: 0.5rem; align-items: center; }
-            .message.sent .message-info { flex-direction: row-reverse; }
-            .message-time { font-size: 0.75rem; color: var(--pico-muted-color); }
-            .read-status { font-size: 0.75rem; color: var(--pico-muted-color); }
-            .input-area { display: flex; gap: 0.5rem; padding: 1rem; border-top: 1px solid var(--pico-muted-border-color); }
-            .input-area input { flex: 1; margin: 0; }
-            .input-area button { margin: 0; }
-            .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--pico-muted-color); }
-        </style>
-    </head>
-    <body>
-        <nav>
-            <ul><li><strong>リソース管理システム</strong></li></ul>
-            <ul>
-                <li><a href="/dashboard">ダッシュボード</a></li>
-                <li><a href="/pcs/view">PC管理</a></li>
-                <li><a href="/employees/view">社員管理</a></li>
-                <li><a href="/departments/view">部署管理</a></li>
-                <li><a href="/history/view">履歴管理</a></li>
-                <li><a href="/blogs/view">ブログ</a></li>
-                <li><a href="/blogs/my">マイブログ</a></li>
-                <li><a href="/chat">チャット</a></li>
-                <li><a href="/mypage">マイページ</a></li>
-                <li><a href="#" onclick="logout(event)">ログアウト</a></li>
-            </ul>
-        </nav>
+{% extends "base.html" %}
 
-        <div class="chat-container">
-            <div class="user-list">
-                <h3>社員一覧</h3>
-                <div id="userList">
-                    {% for emp in employees %}
-                    <div class="user-item {% if selected_user and emp.id == selected_user.id %}active{% endif %}"
-                         onclick="selectUser('{{ emp.id }}')">
-                        <strong>
-                            {% if emp.id|string == current_user_id %}
-                            📝 {{ emp.name }} （自分）
-                            {% elif emp.role == 'admin' %}
-                            👑 {{ emp.name }}
-                            {% else %}
-                            {{ emp.name }}
-                            {% endif %}
-                        </strong>
-                        {% set emp_id = emp.id|string %}
-                        {% if emp_id in unread_counts and unread_counts[emp_id] > 0 %}
-                        <span class="unread-badge">{{ unread_counts[emp_id] }}</span>
-                        {% endif %}
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
+{% block title %}チャット{% endblock %}
 
-            <div class="chat-area">
-                {% if selected_user %}
-                <div class="chat-header">
-                    <h3 style="margin: 0;">{% if selected_user.id|string == current_user_id %}自分（メモ）{% else %}{{ selected_user.name }}{% endif %}</h3>
-                </div>
-                <div id="messages" class="messages-container"></div>
-                <div class="input-area">
-                    <input type="text" id="messageInput" placeholder="メッセージを入力..." onkeypress="handleKeyPress(event)">
-                    <button onclick="sendMessage()">送信</button>
-                </div>
-                {% else %}
-                <div class="empty-state">
-                    <h2>💬</h2>
-                    <p>左の社員一覧からチャットを開始してください</p>
-                </div>
+{% block extra_head %}
+<style>
+    body { margin: 0; height: 100vh; display: flex; flex-direction: column; }
+    .chat-container { flex: 1; display: flex; overflow: hidden; gap: 1rem; padding: 1rem; }
+    .user-list { width: 250px; overflow-y: auto; border-right: 1px solid var(--pico-muted-border-color); padding-right: 1rem; }
+    .user-item { padding: 0.5rem; margin-bottom: 0.25rem; cursor: pointer; border-radius: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+    .user-item:hover { background: var(--pico-secondary-background); }
+    .user-item.active { background: var(--pico-primary-background); color: white; }
+    .unread-badge { background: var(--pico-primary); color: white; border-radius: 50%; min-width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; padding: 0 0.25rem; margin-left: auto; }
+    .user-item.active .unread-badge { background: white; color: var(--pico-primary); }
+    .chat-area { flex: 1; display: flex; flex-direction: column; }
+    .chat-header { padding: 1rem; border-bottom: 1px solid var(--pico-muted-border-color); }
+    .messages-container { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .message { display: flex; gap: 0.5rem; max-width: 70%; }
+    .message.sent { align-self: flex-end; }
+    .message.received { align-self: flex-start; }
+    .message-content { padding: 0.5rem 1rem; border-radius: 1rem; }
+    .message.sent .message-content { background: var(--pico-primary); color: white; }
+    .message.received .message-content { background: var(--pico-card-background-color); }
+    .message-info { display: flex; gap: 0.5rem; align-items: center; }
+    .message.sent .message-info { flex-direction: row-reverse; }
+    .message-time { font-size: 0.75rem; color: var(--pico-muted-color); }
+    .read-status { font-size: 0.75rem; color: var(--pico-muted-color); }
+    .input-area { display: flex; gap: 0.5rem; padding: 1rem; border-top: 1px solid var(--pico-muted-border-color); }
+    .input-area input { flex: 1; margin: 0; }
+    .input-area button { margin: 0; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--pico-muted-color); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="user-list">
+        <h3>社員一覧</h3>
+        <div id="userList">
+            {% for emp in employees %}
+            <div class="user-item {% if selected_user and emp.id == selected_user.id %}active{% endif %}"
+                    onclick="selectUser('{{ emp.id }}')">
+                <strong>
+                    {% if emp.id|string == current_user_id %}
+                    📝 {{ emp.name }} （自分）
+                    {% elif emp.role == 'admin' %}
+                    👑 {{ emp.name }}
+                    {% else %}
+                    {{ emp.name }}
+                    {% endif %}
+                </strong>
+                {% set emp_id = emp.id|string %}
+                {% if emp_id in unread_counts and unread_counts[emp_id] > 0 %}
+                <span class="unread-badge">{{ unread_counts[emp_id] }}</span>
                 {% endif %}
             </div>
+            {% endfor %}
         </div>
+    </div>
 
-        <script>
-            let ws = null;
-            let currentUserId = {% if selected_user %}'{{ selected_user.id }}'{% else %}null{% endif %};
+    <div class="chat-area">
+        {% if selected_user %}
+        <div class="chat-header">
+            <h3 style="margin: 0;">{% if selected_user.id|string == current_user_id %}自分（メモ）{% else %}{{ selected_user.name }}{% endif %}</h3>
+        </div>
+        <div id="messages" class="messages-container"></div>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="メッセージを入力..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">送信</button>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <h2>💬</h2>
+            <p>左の社員一覧からチャットを開始してください</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
 
-            async function updateUnreadBadges() {
-                const resp = await fetch('/chat/unread-counts');
-                const counts = await resp.json();
+{% block extra_scripts %}
+{{ super() }}
+<script>
+    let ws = null;
+    let currentUserId = {% if selected_user %}'{{ selected_user.id }}'{% else %}null{% endif %};
 
-                // 全ての未読バッジを更新
-                document.querySelectorAll('.user-item').forEach(item => {
-                    const userId = item.getAttribute('onclick').match(/'([^']+)'/)[1];
-                    const existingBadge = item.querySelector('.unread-badge');
+    async function updateUnreadBadges() {
+        const resp = await fetch('/chat/unread-counts');
+        const counts = await resp.json();
 
-                    if (counts[userId] && counts[userId] > 0) {
-                        if (existingBadge) {
-                            existingBadge.textContent = counts[userId];
-                        } else {
-                            const badge = document.createElement('span');
-                            badge.className = 'unread-badge';
-                            badge.textContent = counts[userId];
-                            item.appendChild(badge);
-                        }
-                    } else if (existingBadge) {
-                        existingBadge.remove();
-                    }
-                });
+        // 全ての未読バッジを更新
+        document.querySelectorAll('.user-item').forEach(item => {
+            const userId = item.getAttribute('onclick').match(/'([^']+)'/)[1];
+            const existingBadge = item.querySelector('.unread-badge');
+
+            if (counts[userId] && counts[userId] > 0) {
+                if (existingBadge) {
+                    existingBadge.textContent = counts[userId];
+                } else {
+                    const badge = document.createElement('span');
+                    badge.className = 'unread-badge';
+                    badge.textContent = counts[userId];
+                    item.appendChild(badge);
+                }
+            } else if (existingBadge) {
+                existingBadge.remove();
             }
+        });
+    }
 
-            function initWebSocket() {
-                const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-                ws = new WebSocket(`${protocol}//${location.host}/chat/ws`);
-                ws.onopen = () => console.log('WebSocket接続成功');
-                ws.onmessage = (event) => {
-                    const message = JSON.parse(event.data);
-                    if (message.sender_id === currentUserId) {
-                        addMessage(message, false);
-                        scrollToBottom();
-                    } else {
-                        // 他のユーザーからのメッセージ → 未読バッジ更新
-                        updateUnreadBadges();
-                    }
-                };
-                ws.onerror = (error) => console.error('WebSocket error:', error);
-                ws.onclose = () => {
-                    console.log('WebSocket接続終了。5秒後に再接続...');
-                    setTimeout(initWebSocket, 5000);
-                };
+    function initWebSocket() {
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${protocol}//${location.host}/chat/ws`);
+        ws.onopen = () => console.log('WebSocket接続成功');
+        ws.onmessage = (event) => {
+            const message = JSON.parse(event.data);
+            if (message.sender_id === currentUserId) {
+                addMessage(message, false);
+                scrollToBottom();
+            } else {
+                // 他のユーザーからのメッセージ → 未読バッジ更新
+                updateUnreadBadges();
             }
+        };
+        ws.onerror = (error) => console.error('WebSocket error:', error);
+        ws.onclose = () => {
+            console.log('WebSocket接続終了。5秒後に再接続...');
+            setTimeout(initWebSocket, 5000);
+        };
+    }
 
-            async function loadMessages() {
-                if (!currentUserId) return;
-                const resp = await fetch(`/chat/messages/${currentUserId}`);
-                const messages = await resp.json();
-                const container = document.getElementById('messages');
-                container.innerHTML = '';
-                messages.forEach(msg => addMessage(msg, msg.sender_id !== currentUserId));
+    async function loadMessages() {
+        if (!currentUserId) return;
+        const resp = await fetch(`/chat/messages/${currentUserId}`);
+        const messages = await resp.json();
+        const container = document.getElementById('messages');
+        container.innerHTML = '';
+        messages.forEach(msg => addMessage(msg, msg.sender_id !== currentUserId));
+        scrollToBottom();
+    }
+
+    function addMessage(message, isSent) {
+        const container = document.getElementById('messages');
+        const div = document.createElement('div');
+        div.className = `message ${isSent ? 'sent' : 'received'}`;
+        const time = new Date(message.created_at).toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'});
+        const readStatus = isSent && message.is_read ? '<span class="read-status">既読</span>' : '';
+        div.innerHTML = `
+            <div class="message-content">${escapeHtml(message.content)}</div>
+            <div class="message-info">
+                <span class="message-time">${time}</span>
+                ${readStatus}
+            </div>
+        `;
+        container.appendChild(div);
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const content = input.value.trim();
+        if (!content || !currentUserId) return;
+
+        try {
+            const resp = await fetch('/chat/messages', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({receiver_id: currentUserId, content})
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                addMessage({id: data.id, content, created_at: new Date().toISOString(), sender_id: 'me'}, true);
+                input.value = '';
                 scrollToBottom();
             }
+        } catch (error) {
+            console.error('送信エラー:', error);
+            alert('メッセージの送信に失敗しました');
+        }
+    }
 
-            function addMessage(message, isSent) {
-                const container = document.getElementById('messages');
-                const div = document.createElement('div');
-                div.className = `message ${isSent ? 'sent' : 'received'}`;
-                const time = new Date(message.created_at).toLocaleTimeString('ja-JP', {hour: '2-digit', minute: '2-digit'});
-                const readStatus = isSent && message.is_read ? '<span class="read-status">既読</span>' : '';
-                div.innerHTML = `
-                    <div class="message-content">${escapeHtml(message.content)}</div>
-                    <div class="message-info">
-                        <span class="message-time">${time}</span>
-                        ${readStatus}
-                    </div>
-                `;
-                container.appendChild(div);
-            }
+    function selectUser(userId) {
+        location.href = `/chat/${userId}`;
+    }
 
-            async function sendMessage() {
-                const input = document.getElementById('messageInput');
-                const content = input.value.trim();
-                if (!content || !currentUserId) return;
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') sendMessage();
+    }
 
-                try {
-                    const resp = await fetch('/chat/messages', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({receiver_id: currentUserId, content})
-                    });
-                    if (resp.ok) {
-                        const data = await resp.json();
-                        addMessage({id: data.id, content, created_at: new Date().toISOString(), sender_id: 'me'}, true);
-                        input.value = '';
-                        scrollToBottom();
-                    }
-                } catch (error) {
-                    console.error('送信エラー:', error);
-                    alert('メッセージの送信に失敗しました');
-                }
-            }
+    function scrollToBottom() {
+        const container = document.getElementById('messages');
+        if (container) container.scrollTop = container.scrollHeight;
+    }
 
-            function selectUser(userId) {
-                location.href = `/chat/${userId}`;
-            }
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 
-            function handleKeyPress(event) {
-                if (event.key === 'Enter') sendMessage();
-            }
+    async function logout(e) {
+        e.preventDefault();
+        if (ws) ws.close();
+        await fetch('/auth/logout', {method: 'POST'});
+        location.href = '/auth/login';
+    }
 
-            function scrollToBottom() {
-                const container = document.getElementById('messages');
-                if (container) container.scrollTop = container.scrollHeight;
-            }
-
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
-
-            async function logout(e) {
-                e.preventDefault();
-                if (ws) ws.close();
-                await fetch('/auth/logout', {method: 'POST'});
-                location.href = '/auth/login';
-            }
-
-            // 初期化
-            initWebSocket();
-            if (currentUserId) {
-                loadMessages();
-            }
-        </script>
-    </body>
-</html>
+    // 初期化
+    initWebSocket();
+    if (currentUserId) {
+        loadMessages();
+    }
+</script>
+{% endblock %}
