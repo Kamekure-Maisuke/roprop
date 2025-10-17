@@ -69,6 +69,16 @@ class ChatMessage:
     is_read: bool = False
 
 
+@dataclass
+class BlogPost:
+    id: UUID = field(default_factory=uuid4)
+    author_id: UUID = field(default_factory=uuid4)
+    title: str = ""
+    content: str = ""
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
+
+
 # Piccoloテーブル (ORM)
 class DepartmentTable(Table, tablename="departments"):
     id = PiccoloUUID(primary_key=True)
@@ -111,6 +121,15 @@ class ChatMessageTable(Table, tablename="chat_messages"):
     is_read = Boolean(default=False)
 
 
+class BlogPostTable(Table, tablename="blog_posts"):
+    id = PiccoloUUID(primary_key=True)
+    author_id = PiccoloUUID(null=False)
+    title = Varchar(length=255, null=False)
+    content = Text(null=False)
+    created_at = Timestamp(null=False)
+    updated_at = Timestamp(null=False)
+
+
 # データベースエンジン設定
 for table in [
     DepartmentTable,
@@ -118,5 +137,6 @@ for table in [
     PCTable,
     PCAssignmentHistoryTable,
     ChatMessageTable,
+    BlogPostTable,
 ]:
     table._meta._db = DB

@@ -18,6 +18,7 @@ from app.web.employees import employee_web_router
 from app.web.departments import department_web_router
 from app.web.dashboard import dashboard_web_router
 from app.web.chat import chat_web_router
+from app.web.blogs import blog_web_router
 
 
 def session_expired_handler(request: Request, exc: SessionExpiredException) -> Redirect:
@@ -39,6 +40,7 @@ def create_app() -> Litestar:
             department_web_router,
             dashboard_web_router,
             chat_web_router,
+            blog_web_router,
         ],
         exception_handlers={SessionExpiredException: session_expired_handler},
         template_config=TemplateConfig(

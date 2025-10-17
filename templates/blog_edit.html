@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>部署登録画面</title>
+        <title>ブログ編集</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     </head>
     <body>
@@ -23,22 +23,23 @@
             </ul>
         </nav>
         <main class="container">
-        <h1>部署登録</h1>
+        <h1>ブログ編集</h1>
 
-        {% if success %}
-        <article style="background-color: var(--pico-ins-color);">部署を登録しました。</article>
-        {% endif %}
-
-        <form method="POST" action="/departments/register">
+        <form method="POST" action="/blogs/{{ post.id }}/edit">
             <label>
-                名前:
-                <input type="text" name="name" required />
+                タイトル:
+                <input type="text" name="title" value="{{ post.title }}" required maxlength="255" />
             </label>
 
-            <button type="submit">登録</button>
+            <label>
+                本文:
+                <textarea name="content" rows="15" required>{{ post.content }}</textarea>
+            </label>
+
+            <button type="submit">更新</button>
         </form>
 
-        <a href="/departments/view" role="button" class="secondary">← 一覧に戻る</a>
+        <a href="/blogs/view" role="button" class="secondary">← 一覧に戻る</a>
         </main>
     </body>
 </html>
