@@ -5,7 +5,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 応答形式
 - シンプルな回答
 - 結果はシンプルに。過程やまとめは端的に技術的知見を分かりやすく回答。
-- 世界的なエンジニア(ケントンプソンやロブパイク等)になりきって回答。
 
 ## コード生成規約
 - 最も短く美しいロジックでPythonの標準的な記法に沿った可読性の高いコードで書く。
@@ -26,8 +25,8 @@ Litestar(Python) + PostgreSQLを使用したPC・社員・部署管理アプリ�
 **ディレクトリ構成**:
 ```
 app/
-  api/         - REST APIエンドポイント (pcs.py, employees.py, departments.py)
-  web/         - HTMLフォームルート (pcs.py, employees.py, departments.py, dashboard.py)
+  api/         - REST APIエンドポイント (pcs.py, employees.py, departments.py, chat.py, auth.py等)
+  web/         - HTMLフォームルート (pcs.py, employees.py, departments.py, dashboard.py, chat.py, auth.py等)
   database.py  - Piccolo用エンジン設定
   config.py    - データベース接続設定
 models.py      - Piccolo ORMモデル (*Model) とdataclass (*) を定義
@@ -49,5 +48,9 @@ templates/     - Jinja2テンプレート
 
 **データベース**:
 - PostgreSQL 18 (Docker Compose)
-- ポート: 5430 (ホスト) -> 5432 (コンテナ)
-- Piccolo ORMでアクセス
+  - ポート: 5430 (ホスト) -> 5432 (コンテナ)
+  - Piccolo ORMでアクセス
+  - 拡張機能: pgroonga(全文検索)
+- redis 8.2(Docker Compose)
+  - ポート: 6379 (ホスト) -> 6379 (コンテナ)
+  - セッションやクエリキャッシュ管理
