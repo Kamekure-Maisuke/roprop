@@ -1,282 +1,251 @@
-<!doctype html>
-<html lang="ja" data-theme="light">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>ダッシュボード</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
-        <style>
-            .stats-container {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 1rem;
-                margin-bottom: 2rem;
-            }
-            .stat-card {
-                text-align: center;
-                padding: 1.5rem;
-            }
-            .stat-number {
-                font-size: 2.5rem;
-                font-weight: bold;
-                color: var(--pico-primary);
-                margin: 0.5rem 0;
-            }
-            .stat-label {
-                color: var(--pico-muted-color);
-                font-size: 0.875rem;
-            }
-            .charts-container {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-                gap: 1rem;
-                margin-top: 2rem;
-            }
-            .chart-card {
-                padding: 1.5rem;
-            }
-            .chart-title {
-                font-size: 1.125rem;
-                font-weight: bold;
-                margin-bottom: 1rem;
-                text-align: center;
-            }
-            .chart-wrapper {
-                position: relative;
-                height: 300px;
-            }
-        </style>
-    </head>
-    <body>
-        <nav>
-            <ul>
-                <li><strong>リソース管理システム</strong></li>
-            </ul>
-            <ul>
-                <li><a href="/dashboard">ダッシュボード</a></li>
-                <li><a href="/pcs/view">PC管理</a></li>
-                <li><a href="/employees/view">社員管理</a></li>
-                <li><a href="/departments/view">部署管理</a></li>
-                <li><a href="/tags/view">タグ管理</a></li>
-                <li><a href="/history/view">履歴管理</a></li>
-                <li><a href="/blogs/view">ブログ</a></li>
-                <li><a href="/blogs/my">マイブログ</a></li>
-                <li><a href="/chat">チャット</a></li>
-                <li>
-                    <form method="GET" action="/search/view" style="margin: 0; display: flex; align-items: center;">
-                        <input type="search" name="q" placeholder="検索..." style="margin: 0; padding: 0.25rem 0.5rem; width: 150px;" required>
-                    </form>
-                </li>
-                <li><a href="/mypage">マイページ</a></li>
-                <li><a href="#" onclick="logout(event)">ログアウト</a></li>
-            </ul>
-        </nav>
-        <main class="container">
+{% extends "base.html" %}
 
-        <h1>リソース統計ダッシュボード</h1>
+{% block title %}ダッシュボード{% endblock %}
 
-        <!-- PC返却予定アラート -->
-        {% if alerts.resignations or alerts.transfers %}
-        <article style="background-color: #fff3cd; border-left: 4px solid #ffc107; margin-bottom: 2rem;">
-            <header style="background-color: #ffc107; color: #000; padding: 1rem; margin: -1rem -1rem 1rem -1rem;">
-                <strong>⚠️ PC返却予定アラート (今後7日間)</strong>
-            </header>
-            {% if alerts.resignations %}
-            <div style="margin-bottom: 1rem;">
-                <h4 style="color: #d32f2f; margin-bottom: 0.5rem;">🚪 退職予定</h4>
-                <ul style="margin: 0;">
-                    {% for alert in alerts.resignations %}
-                    <li>
-                        <strong>{{ alert.name }}</strong> - {{ alert.date }} (あと{{ alert.days_left }}日)
-                        {% if alert.returned %}
-                        <span style="color: #2e7d32; font-weight: bold; margin-left: 0.5rem;">✓ PC返却済み</span>
-                        {% else %}
-                        <span style="color: #d32f2f; font-weight: bold; margin-left: 0.5rem;">⚠ PC未返却</span>
-                        {% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-            {% if alerts.transfers %}
-            <div>
-                <h4 style="color: #f57c00; margin-bottom: 0.5rem;">🔄 異動予定</h4>
-                <ul style="margin: 0;">
-                    {% for alert in alerts.transfers %}
-                    <li>
-                        <strong>{{ alert.name }}</strong> - {{ alert.date }} (あと{{ alert.days_left }}日)
-                        {% if alert.returned %}
-                        <span style="color: #2e7d32; font-weight: bold; margin-left: 0.5rem;">✓ PC返却済み</span>
-                        {% else %}
-                        <span style="color: #d32f2f; font-weight: bold; margin-left: 0.5rem;">⚠ PC未返却</span>
-                        {% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
-        </article>
-        {% endif %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"></script>
+<style>
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .stat-card {
+        text-align: center;
+        padding: 1.5rem;
+    }
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--pico-primary);
+        margin: 0.5rem 0;
+    }
+    .stat-label {
+        color: var(--pico-muted-color);
+        font-size: 0.875rem;
+    }
+    .charts-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+    .chart-card {
+        padding: 1.5rem;
+    }
+    .chart-title {
+        font-size: 1.125rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+    .chart-wrapper {
+        position: relative;
+        height: 300px;
+    }
+</style>
+{% endblock %}
 
-        <div class="stats-container">
-            <article class="stat-card">
-                <div class="stat-label">総PC台数</div>
-                <div class="stat-number">{{ total_pcs }}</div>
-            </article>
-            <article class="stat-card">
-                <div class="stat-label">総社員数</div>
-                <div class="stat-number">{{ total_employees }}</div>
-            </article>
-            <article class="stat-card">
-                <div class="stat-label">総部署数</div>
-                <div class="stat-number">{{ total_departments }}</div>
-            </article>
-            <article class="stat-card">
-                <div class="stat-label">未割り当てPC</div>
-                <div class="stat-number">{{ unassigned_pc_count }}</div>
-            </article>
+{% block content %}
+<h1>リソース統計ダッシュボード</h1>
+
+<!-- PC返却予定アラート -->
+{% if alerts.resignations or alerts.transfers %}
+<article style="background-color: #fff3cd; border-left: 4px solid #ffc107; margin-bottom: 2rem;">
+    <header style="background-color: #ffc107; color: #000; padding: 1rem; margin: -1rem -1rem 1rem -1rem;">
+        <strong>⚠️ PC返却予定アラート (今後7日間)</strong>
+    </header>
+    {% if alerts.resignations %}
+    <div style="margin-bottom: 1rem;">
+        <h4 style="color: #d32f2f; margin-bottom: 0.5rem;">🚪 退職予定</h4>
+        <ul style="margin: 0;">
+            {% for alert in alerts.resignations %}
+            <li>
+                <strong>{{ alert.name }}</strong> - {{ alert.date }} (あと{{ alert.days_left }}日)
+                {% if alert.returned %}
+                <span style="color: #2e7d32; font-weight: bold; margin-left: 0.5rem;">✓ PC返却済み</span>
+                {% else %}
+                <span style="color: #d32f2f; font-weight: bold; margin-left: 0.5rem;">⚠ PC未返却</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {% if alerts.transfers %}
+    <div>
+        <h4 style="color: #f57c00; margin-bottom: 0.5rem;">🔄 異動予定</h4>
+        <ul style="margin: 0;">
+            {% for alert in alerts.transfers %}
+            <li>
+                <strong>{{ alert.name }}</strong> - {{ alert.date }} (あと{{ alert.days_left }}日)
+                {% if alert.returned %}
+                <span style="color: #2e7d32; font-weight: bold; margin-left: 0.5rem;">✓ PC返却済み</span>
+                {% else %}
+                <span style="color: #d32f2f; font-weight: bold; margin-left: 0.5rem;">⚠ PC未返却</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</article>
+{% endif %}
+
+<div class="stats-container">
+    <article class="stat-card">
+        <div class="stat-label">総PC台数</div>
+        <div class="stat-number">{{ total_pcs }}</div>
+    </article>
+    <article class="stat-card">
+        <div class="stat-label">総社員数</div>
+        <div class="stat-number">{{ total_employees }}</div>
+    </article>
+    <article class="stat-card">
+        <div class="stat-label">総部署数</div>
+        <div class="stat-number">{{ total_departments }}</div>
+    </article>
+    <article class="stat-card">
+        <div class="stat-label">未割り当てPC</div>
+        <div class="stat-number">{{ unassigned_pc_count }}</div>
+    </article>
+</div>
+
+<div class="charts-container">
+    <article class="chart-card">
+        <div class="chart-title">部署別PC保有台数</div>
+        <div class="chart-wrapper">
+            <canvas id="pcChart"></canvas>
         </div>
-
-        <div class="charts-container">
-            <article class="chart-card">
-                <div class="chart-title">部署別PC保有台数</div>
-                <div class="chart-wrapper">
-                    <canvas id="pcChart"></canvas>
-                </div>
-            </article>
-            <article class="chart-card">
-                <div class="chart-title">部署別PC割り当て状況</div>
-                <div class="chart-wrapper">
-                    <canvas id="pieChart"></canvas>
-                </div>
-            </article>
+    </article>
+    <article class="chart-card">
+        <div class="chart-title">部署別PC割り当て状況</div>
+        <div class="chart-wrapper">
+            <canvas id="pieChart"></canvas>
         </div>
+    </article>
+</div>
 
-        <h2>部署別詳細</h2>
-        {% if dept_stats %}
-        <figure>
-            <table>
-                <thead>
-                    <tr>
-                        <th>部署名</th>
-                        <th>社員数</th>
-                        <th>PC保有台数</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for dept in dept_stats %}
-                    <tr>
-                        <td>{{ dept.name }}</td>
-                        <td>{{ dept.employee_count }}</td>
-                        <td>{{ dept.pc_count }}</td>
-                    </tr>
-                    {% endfor %}
-                    {% if unassigned_pc_count > 0 %}
-                    <tr>
-                        <td><strong>未割り当て</strong></td>
-                        <td>-</td>
-                        <td>{{ unassigned_pc_count }}</td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </figure>
-        {% else %}
-        <p style="text-align: center;">部署データがありません。</p>
-        {% endif %}
-        </main>
+<h2>部署別詳細</h2>
+{% if dept_stats %}
+<figure>
+    <table>
+        <thead>
+            <tr>
+                <th>部署名</th>
+                <th>社員数</th>
+                <th>PC保有台数</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dept in dept_stats %}
+            <tr>
+                <td>{{ dept.name }}</td>
+                <td>{{ dept.employee_count }}</td>
+                <td>{{ dept.pc_count }}</td>
+            </tr>
+            {% endfor %}
+            {% if unassigned_pc_count > 0 %}
+            <tr>
+                <td><strong>未割り当て</strong></td>
+                <td>-</td>
+                <td>{{ unassigned_pc_count }}</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</figure>
+{% else %}
+<p style="text-align: center;">部署データがありません。</p>
+{% endif %}
+{% endblock %}
 
-        <script>
-            // Data preparation
-            const deptStats = {{ dept_stats | tojson }};
-            const unassignedCount = {{ unassigned_pc_count }};
+{% block extra_scripts %}
+{{ super() }}
+<script>
+    // Data preparation
+    const deptStats = {{ dept_stats | tojson }};
+    const unassignedCount = {{ unassigned_pc_count }};
 
-            const deptNames = deptStats.map(d => d.name);
-            const pcCounts = deptStats.map(d => d.pc_count);
-            const employeeCounts = deptStats.map(d => d.employee_count);
+    const deptNames = deptStats.map(d => d.name);
+    const pcCounts = deptStats.map(d => d.pc_count);
+    const employeeCounts = deptStats.map(d => d.employee_count);
 
-            // Colors for charts
-            const colors = [
-                'rgba(255, 99, 132, 0.8)',
-                'rgba(54, 162, 235, 0.8)',
-                'rgba(255, 206, 86, 0.8)',
-                'rgba(75, 192, 192, 0.8)',
-                'rgba(153, 102, 255, 0.8)',
-                'rgba(255, 159, 64, 0.8)',
-                'rgba(199, 199, 199, 0.8)',
-            ];
+    // Colors for charts
+    const colors = [
+        'rgba(255, 99, 132, 0.8)',
+        'rgba(54, 162, 235, 0.8)',
+        'rgba(255, 206, 86, 0.8)',
+        'rgba(75, 192, 192, 0.8)',
+        'rgba(153, 102, 255, 0.8)',
+        'rgba(255, 159, 64, 0.8)',
+        'rgba(199, 199, 199, 0.8)',
+    ];
 
-            // Bar Chart: PC count by department
-            const pcChartCtx = document.getElementById('pcChart').getContext('2d');
-            new Chart(pcChartCtx, {
-                type: 'bar',
-                data: {
-                    labels: deptNames,
-                    datasets: [{
-                        label: 'PC保有台数',
-                        data: pcCounts,
-                        backgroundColor: 'rgba(76, 175, 80, 0.8)',
-                        borderColor: 'rgba(76, 175, 80, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
+    // Bar Chart: PC count by department
+    const pcChartCtx = document.getElementById('pcChart').getContext('2d');
+    new Chart(pcChartCtx, {
+        type: 'bar',
+        data: {
+            labels: deptNames,
+            datasets: [{
+                label: 'PC保有台数',
+                data: pcCounts,
+                backgroundColor: 'rgba(76, 175, 80, 0.8)',
+                borderColor: 'rgba(76, 175, 80, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
                     }
                 }
-            });
-
-            // Pie Chart: PC distribution with unassigned
-            const pieLabels = [...deptNames];
-            const pieCounts = [...pcCounts];
-
-            if (unassignedCount > 0) {
-                pieLabels.push('未割り当て');
-                pieCounts.push(unassignedCount);
-            }
-
-            const pieChartCtx = document.getElementById('pieChart').getContext('2d');
-            new Chart(pieChartCtx, {
-                type: 'pie',
-                data: {
-                    labels: pieLabels,
-                    datasets: [{
-                        data: pieCounts,
-                        backgroundColor: colors.slice(0, pieLabels.length),
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
+            },
+            plugins: {
+                legend: {
+                    display: false
                 }
-            });
-
-            async function logout(e) {
-                e.preventDefault();
-                await fetch('/auth/logout', { method: 'POST' });
-                location.href = '/auth/login';
             }
-        </script>
-    </body>
-</html>
+        }
+    });
+
+    // Pie Chart: PC distribution with unassigned
+    const pieLabels = [...deptNames];
+    const pieCounts = [...pcCounts];
+
+    if (unassignedCount > 0) {
+        pieLabels.push('未割り当て');
+        pieCounts.push(unassignedCount);
+    }
+
+    const pieChartCtx = document.getElementById('pieChart').getContext('2d');
+    new Chart(pieChartCtx, {
+        type: 'pie',
+        data: {
+            labels: pieLabels,
+            datasets: [{
+                data: pieCounts,
+                backgroundColor: colors.slice(0, pieLabels.length),
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
