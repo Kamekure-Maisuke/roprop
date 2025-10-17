@@ -91,6 +91,7 @@
                         </td>
                         <td>
                             <div class="action-buttons">
+                                <a href="/pcs/{{ pc.id }}/show" role="button" class="contrast">詳細</a>
                                 {% if user_role == 'admin' %}
                                 <a href="/pcs/{{ pc.id }}/edit" role="button" class="secondary">編集</a>
                                 {% endif %}

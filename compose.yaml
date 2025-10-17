@@ -1,6 +1,7 @@
 services:
   db:
-    image: postgres:18-alpine
+    build:
+      context: .
     ports:
       - "5430:5432"
     tty: true

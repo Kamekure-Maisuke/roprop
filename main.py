@@ -11,6 +11,7 @@ from app.api.pcs import pc_api_router
 from app.api.employees import employee_api_router
 from app.api.departments import department_api_router
 from app.api.chat import chat_api_router
+from app.api.search import search_router
 from app.auth import SessionExpiredException
 from app.web.auth import auth_web_router
 from app.web.pcs import pc_web_router
@@ -19,6 +20,7 @@ from app.web.departments import department_web_router
 from app.web.dashboard import dashboard_web_router
 from app.web.chat import chat_web_router
 from app.web.blogs import blog_web_router
+from app.web.search import search_web_router
 
 
 def session_expired_handler(request: Request, exc: SessionExpiredException) -> Redirect:
@@ -35,12 +37,14 @@ def create_app() -> Litestar:
             employee_api_router,
             department_api_router,
             chat_api_router,
+            search_router,
             pc_web_router,
             employee_web_router,
             department_web_router,
             dashboard_web_router,
             chat_web_router,
             blog_web_router,
+            search_web_router,
         ],
         exception_handlers={SessionExpiredException: session_expired_handler},
         template_config=TemplateConfig(

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja" data-theme="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>PC詳細</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    </head>
+    <body>
+        <nav>
+            <ul><li><strong>リソース管理システム</strong></li></ul>
+            <ul>
+                <li><a href="/dashboard">ダッシュボード</a></li>
+                <li><a href="/pcs/view">PC管理</a></li>
+                <li><a href="/employees/view">社員管理</a></li>
+                <li><a href="/departments/view">部署管理</a></li>
+                <li><a href="/history/view">履歴管理</a></li>
+                <li><a href="/blogs/view">ブログ</a></li>
+                <li><a href="/mypage">マイページ</a></li>
+            </ul>
+        </nav>
+        <main class="container">
+            <h1>PC詳細</h1>
+            <article>
+                <table>
+                    <tr><th>PC名</th><td>{{ pc.name }}</td></tr>
+                    <tr><th>モデル</th><td>{{ pc.model }}</td></tr>
+                    <tr><th>シリアル番号</th><td>{{ pc.serial_number }}</td></tr>
+                    <tr>
+                        <th>割り当て先</th>
+                        <td>
+                            {% if employee %}
+                                <a href="/employees/{{ employee.id }}/show">{{ employee.name }}</a>
+                            {% else %}
+                                未割り当て
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+                <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                    <a href="/pcs/view" role="button" class="secondary">一覧に戻る</a>
+                    <a href="/pcs/{{ pc.id }}/history/view" role="button" class="secondary">割り当て履歴</a>
+                </div>
+            </article>
+        </main>
+    </body>
+</html>

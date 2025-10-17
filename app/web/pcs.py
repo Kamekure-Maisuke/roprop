@@ -60,6 +60,29 @@ async def _get_employees_and_departments() -> tuple[
     return employees, departments
 
 
+@get("/pcs/{pc_id:uuid}/show")
+async def show_pc_detail(pc_id: UUID) -> Template:
+    result = await _get_pc_or_404(pc_id)
+    pc = PC(
+        id=result["id"],
+        name=result["name"],
+        model=result["model"],
+        serial_number=result["serial_number"],
+        assigned_to=result["assigned_to"],
+    )
+    assigned_employee = None
+    if pc.assigned_to and (
+        emp := await E.select().where(E.id == pc.assigned_to).first()
+    ):
+        assigned_employee = Employee(
+            id=emp["id"],
+            name=emp["name"],
+            email=emp["email"],
+            department_id=emp["department_id"],
+        )
+    return Template("pc_detail.html", context={"pc": pc, "employee": assigned_employee})
+
+
 @get("/pcs/view")
 async def view_pcs(request: Request, page: int = 1) -> Template:
     page_size, total = 10, await P.count()
@@ -437,6 +460,7 @@ async def export_history_tsv() -> Response:
 pc_web_router = Router(
     path="",
     route_handlers=[
+        show_pc_detail,
         view_pcs,
         show_register_form,
         register_pc,

@@ -26,6 +26,28 @@ async def _get_departments() -> list[Department]:
     return [Department(id=d["id"], name=d["name"]) for d in await D.select()]
 
 
+@get("/employees/{employee_id:uuid}/show")
+async def show_employee_detail(employee_id: UUID) -> Template:
+    result = await _get_or_404(employee_id)
+    emp = Employee(
+        id=result["id"],
+        name=result["name"],
+        email=result["email"],
+        department_id=result["department_id"],
+        resignation_date=result.get("resignation_date"),
+        transfer_date=result.get("transfer_date"),
+        role=Role(result.get("role", Role.USER.value)),
+    )
+    department = None
+    if emp.department_id and (
+        dept := await D.select().where(D.id == emp.department_id).first()
+    ):
+        department = Department(id=dept["id"], name=dept["name"])
+    return Template(
+        "employee_detail.html", context={"employee": emp, "department": department}
+    )
+
+
 @get("/employees/view")
 async def view_employees(request: Request, page: int = 1) -> Template:
     page_size, total = 10, await E.count()
@@ -240,6 +262,7 @@ async def view_mypage(request: Request) -> Template:
 employee_web_router = Router(
     path="",
     route_handlers=[
+        show_employee_detail,
         view_employees,
         show_employee_register_form,
         register_employee,
