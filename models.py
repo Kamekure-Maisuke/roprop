@@ -79,6 +79,12 @@ class BlogPost:
     updated_at: datetime = field(default_factory=datetime.now)
 
 
+@dataclass
+class Tag:
+    id: UUID = field(default_factory=uuid4)
+    name: str = ""
+
+
 # Piccoloテーブル (ORM)
 class DepartmentTable(Table, tablename="departments"):
     id = PiccoloUUID(primary_key=True)
@@ -130,6 +136,11 @@ class BlogPostTable(Table, tablename="blog_posts"):
     updated_at = Timestamp(null=False)
 
 
+class TagTable(Table, tablename="tags"):
+    id = PiccoloUUID(primary_key=True)
+    name = Varchar(length=255, null=False)
+
+
 # データベースエンジン設定
 for table in [
     DepartmentTable,
@@ -138,5 +149,6 @@ for table in [
     PCAssignmentHistoryTable,
     ChatMessageTable,
     BlogPostTable,
+    TagTable,
 ]:
     table._meta._db = DB
