@@ -72,29 +72,15 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if user_role == 'admin' %}
                             <div class="action-buttons">
-                                <a
-                                    href="/employees/{{ employee.id }}/edit"
-                                    role="button"
-                                    class="secondary"
-                                    >編集</a
-                                >
-                                <form
-                                    method="POST"
-                                    action="/employees/{{ employee.id }}/delete"
-                                    style="margin: 0"
-                                >
-                                    <button
-                                        type="submit"
-                                        class="secondary"
-                                        onclick="return confirm('本当に削除しますか？')"
-                                    >
-                                        削除
-                                    </button>
+                                <a href="/employees/{{ employee.id }}/show" role="button" class="contrast">詳細</a>
+                                {% if user_role == 'admin' %}
+                                <a href="/employees/{{ employee.id }}/edit" role="button" class="secondary">編集</a>
+                                <form method="POST" action="/employees/{{ employee.id }}/delete" style="margin: 0">
+                                    <button type="submit" class="secondary" onclick="return confirm('本当に削除しますか？')">削除</button>
                                 </form>
+                                {% endif %}
                             </div>
-                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja" data-theme="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>全体検索</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+        <style>
+            .search-form { margin-bottom: 2rem; }
+            .result-card {
+                margin-bottom: 1.5rem;
+                padding: 1.5rem;
+                border: 1px solid var(--pico-muted-border-color);
+                border-radius: var(--pico-border-radius);
+            }
+            .result-card h3 { margin-top: 0; margin-bottom: 0.5rem; }
+            .result-card h3 a { text-decoration: none; color: inherit; }
+            .result-card h3 a:hover { color: var(--pico-primary); }
+            .result-meta { color: var(--pico-muted-color); font-size: 0.875rem; margin-bottom: 0.5rem; }
+            .result-type { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+            .result-type.pc { background: #e3f2fd; color: #1976d2; }
+            .result-type.employee { background: #f3e5f5; color: #7b1fa2; }
+            .result-type.blog { background: #fff3e0; color: #f57c00; }
+        </style>
+    </head>
+    <body>
+        <nav>
+            <ul><li><strong>リソース管理システム</strong></li></ul>
+            <ul>
+                <li><a href="/dashboard">ダッシュボード</a></li>
+                <li><a href="/pcs/view">PC管理</a></li>
+                <li><a href="/employees/view">社員管理</a></li>
+                <li><a href="/departments/view">部署管理</a></li>
+                <li><a href="/history/view">履歴管理</a></li>
+                <li><a href="/blogs/view">ブログ</a></li>
+                <li><a href="/blogs/my">マイブログ</a></li>
+                <li><a href="/search/view">検索</a></li>
+                <li><a href="/mypage">マイページ</a></li>
+            </ul>
+        </nav>
+        <main class="container">
+            <h1>全体検索</h1>
+            <form method="GET" action="/search/view" class="search-form">
+                <input type="search" name="q" placeholder="PC、社員、ブログを検索..." value="{{ query }}" required>
+                <button type="submit">検索</button>
+            </form>
+
+            {% if query %}
+                {% if results %}
+                    <p><strong>{{ results|length }}</strong> 件の結果が見つかりました</p>
+                    {% for result in results %}
+                    <div class="result-card">
+                        <div class="result-meta">
+                            <span class="result-type {{ result.type }}">{{ result.type.upper() }}</span>
+                        </div>
+                        <h3><a href="{{ result.link }}">{{ result.title }}</a></h3>
+                        <p>{{ result.description }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="text-align: center;">「{{ query }}」に一致する結果が見つかりませんでした。</p>
+                {% endif %}
+            {% else %}
+                <p style="text-align: center; color: var(--pico-muted-color);">キーワードを入力して検索してください。</p>
+            {% endif %}
+        </main>
+    </body>
+</html>
