@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ja" data-theme="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{{ post.title }} - ブログ詳細</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+        <style>
+            .blog-header {
+                margin-bottom: 2rem;
+                padding-bottom: 1rem;
+                border-bottom: 2px solid var(--pico-muted-border-color);
+            }
+            .blog-title {
+                margin-bottom: 1rem;
+            }
+            .blog-meta {
+                color: var(--pico-muted-color);
+                font-size: 0.875rem;
+            }
+            .blog-content {
+                white-space: pre-wrap;
+                line-height: 1.8;
+                margin: 2rem 0;
+            }
+            .action-buttons {
+                display: flex;
+                gap: 0.5rem;
+                margin-top: 2rem;
+            }
+            .action-buttons button {
+                margin: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <nav>
+            <ul>
+                <li><strong>リソース管理システム</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/dashboard">ダッシュボード</a></li>
+                <li><a href="/pcs/view">PC管理</a></li>
+                <li><a href="/employees/view">社員管理</a></li>
+                <li><a href="/departments/view">部署管理</a></li>
+                <li><a href="/history/view">履歴管理</a></li>
+                <li><a href="/blogs/view">ブログ</a></li>
+                <li><a href="/blogs/my">マイブログ</a></li>
+                <li><a href="/mypage">マイページ</a></li>
+            </ul>
+        </nav>
+        <main class="container">
+        <article>
+            <div class="blog-header">
+                <h1 class="blog-title">{{ post.title }}</h1>
+                <div class="blog-meta">
+                    投稿者: {{ author.name if author else '不明' }} |
+                    投稿日時: {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% if post.updated_at != post.created_at %}
+                    | 更新日時: {{ post.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% endif %}
+                </div>
+            </div>
+            <div class="blog-content">{{ post.content }}</div>
+        </article>
+
+        {% if post.author_id == user_id or user_role == 'admin' %}
+        <div class="action-buttons">
+            <form method="GET" action="/blogs/{{ post.id }}/edit" style="margin: 0">
+                <button type="submit" class="secondary">編集</button>
+            </form>
+            <form method="POST" action="/blogs/{{ post.id }}/delete" style="margin: 0">
+                <button type="submit" class="secondary" onclick="return confirm('本当に削除しますか?')">削除</button>
+            </form>
+        </div>
+        {% endif %}
+
+        <a href="/blogs/view" role="button" class="secondary" style="margin-top: 2rem;">← 一覧に戻る</a>
+        </main>
+    </body>
+</html>
