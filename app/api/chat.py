@@ -70,10 +70,10 @@ async def send_message(data: SendMessageRequest, request: Request) -> dict[str, 
 
 @get("/messages/{user_id:uuid}")
 async def get_messages(user_id: UUID, request: Request) -> list[MessageResponse]:
-    """特定ユーザーとのメッセージ履歴取得"""
+    """特定ユーザーとのメッセージ履歴取得（最新200件）"""
     current_user_id = UUID(request.state.user_id)
 
-    # 自分と相手のメッセージを取得
+    # 自分と相手のメッセージを最新200件取得
     messages = (
         await ChatMessageTable.select()
         .where(
@@ -86,8 +86,10 @@ async def get_messages(user_id: UUID, request: Request) -> list[MessageResponse]
                 & (ChatMessageTable.receiver_id == current_user_id)
             )
         )
-        .order_by(ChatMessageTable.created_at, ascending=True)
+        .order_by(ChatMessageTable.created_at, ascending=False)
+        .limit(200)
     )
+    messages = list(reversed(messages))
 
     # 2人の社員情報を一度だけ取得
     sender = (
@@ -123,49 +125,49 @@ async def get_conversations(request: Request) -> list[dict]:
     """会話一覧を取得"""
     current_user_id = UUID(request.state.user_id)
 
-    # 自分が送信または受信したメッセージを取得
-    messages = (
-        await ChatMessageTable.select()
-        .where(
-            (ChatMessageTable.sender_id == current_user_id)
-            | (ChatMessageTable.receiver_id == current_user_id)
+    # 最新メッセージと未読件数を1クエリで取得
+    rows = await ChatMessageTable.raw(
+        """
+        WITH latest_messages AS (
+            SELECT DISTINCT ON (
+                CASE WHEN sender_id = {} THEN receiver_id ELSE sender_id END
+            )
+                CASE WHEN sender_id = {} THEN receiver_id ELSE sender_id END as other_user_id,
+                content, created_at
+            FROM chat_messages
+            WHERE sender_id = {} OR receiver_id = {}
+            ORDER BY CASE WHEN sender_id = {} THEN receiver_id ELSE sender_id END, created_at DESC
+        ),
+        unread_counts AS (
+            SELECT sender_id, COUNT(*) as count
+            FROM chat_messages
+            WHERE receiver_id = {} AND is_read = FALSE
+            GROUP BY sender_id
         )
-        .order_by(ChatMessageTable.created_at, ascending=False)
+        SELECT l.other_user_id, e.name, l.content, l.created_at, COALESCE(u.count, 0) as unread_count
+        FROM latest_messages l
+        LEFT JOIN employees e ON e.id = l.other_user_id
+        LEFT JOIN unread_counts u ON u.sender_id = l.other_user_id
+        ORDER BY l.created_at DESC
+        """,
+        current_user_id,
+        current_user_id,
+        current_user_id,
+        current_user_id,
+        current_user_id,
+        current_user_id,
     )
 
-    # ユーザーごとの最新メッセージをまとめる
-    conversations = {}
-    for msg in messages:
-        other_user_id = (
-            msg["receiver_id"]
-            if msg["sender_id"] == current_user_id
-            else msg["sender_id"]
-        )
-
-        if other_user_id not in conversations:
-            user = (
-                await EmployeeTable.select()
-                .where(EmployeeTable.id == other_user_id)
-                .first()
-            )
-            conversations[other_user_id] = {
-                "user_id": str(other_user_id),
-                "user_name": user["name"] if user else "Unknown",
-                "last_message": msg["content"],
-                "last_message_time": msg["created_at"].isoformat(),
-                "unread_count": 0,
-            }
-
-    # 未読カウント
-    for user_id in conversations:
-        unread = await ChatMessageTable.count().where(
-            (ChatMessageTable.sender_id == UUID(user_id))
-            & (ChatMessageTable.receiver_id == current_user_id)
-            & ~ChatMessageTable.is_read
-        )
-        conversations[user_id]["unread_count"] = unread
-
-    return list(conversations.values())
+    return [
+        {
+            "user_id": str(row["other_user_id"]),
+            "user_name": row["name"] or "Unknown",
+            "last_message": row["content"],
+            "last_message_time": row["created_at"].isoformat(),
+            "unread_count": row["unread_count"],
+        }
+        for row in rows
+    ]
 
 
 @post("/messages/{message_id:uuid}/read")

@@ -13,15 +13,13 @@ async def view_chat(request: Request) -> Template:
     current_user_id = UUID(request.state.user_id)
     employees = await EmployeeTable.select().order_by(EmployeeTable.name)
 
-    # 各社員の未読件数を取得
-    unread_counts = {}
-    for emp in employees:
-        count = await ChatMessageTable.count().where(
-            (ChatMessageTable.sender_id == emp["id"])
-            & (ChatMessageTable.receiver_id == current_user_id)
-            & (ChatMessageTable.is_read == False)  # noqa: E712
-        )
-        unread_counts[str(emp["id"])] = count
+    # 全社員の未読件数を1クエリで取得
+    unread_msgs = await ChatMessageTable.raw(
+        "SELECT sender_id, COUNT(*) as count FROM chat_messages "
+        "WHERE receiver_id = {} AND is_read = FALSE GROUP BY sender_id",
+        current_user_id,
+    )
+    unread_counts = {str(row["sender_id"]): row["count"] for row in unread_msgs}
 
     return Template(
         template_name="chat.html",
@@ -42,21 +40,19 @@ async def view_chat_with_user(user_id: UUID, request: Request) -> Template:
         await EmployeeTable.select().where(EmployeeTable.id == user_id).first()
     )
 
-    # 各社員の未読件数を取得
-    unread_counts = {}
-    for emp in employees:
-        count = await ChatMessageTable.count().where(
-            (ChatMessageTable.sender_id == emp["id"])
-            & (ChatMessageTable.receiver_id == current_user_id)
-            & (ChatMessageTable.is_read == False)  # noqa: E712
-        )
-        unread_counts[str(emp["id"])] = count
-
     # 選択中ユーザーのメッセージを既読にする
     await ChatMessageTable.update({ChatMessageTable.is_read: True}).where(
         (ChatMessageTable.sender_id == user_id)
         & (ChatMessageTable.receiver_id == current_user_id)
     )
+
+    # 全社員の未読件数を1クエリで取得
+    unread_msgs = await ChatMessageTable.raw(
+        "SELECT sender_id, COUNT(*) as count FROM chat_messages "
+        "WHERE receiver_id = {} AND is_read = FALSE GROUP BY sender_id",
+        current_user_id,
+    )
+    unread_counts = {str(row["sender_id"]): row["count"] for row in unread_msgs}
 
     return Template(
         template_name="chat.html",
