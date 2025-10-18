@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "cachetools>=6.2.1",
     "litestar-granian>=0.14.2",
     "litestar[standard]>=2.18.0",
     "piccolo[postgres]>=1.28.0",
