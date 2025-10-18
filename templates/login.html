@@ -45,7 +45,7 @@
                 if (res.ok) {
                     msg.className = 'success';
                     msg.textContent = 'ログインコードを送信しました。メールをご確認ください。';
-                    setTimeout(() => location.href = `/auth/verify?email=${encodeURIComponent(email)}`, 2000);
+                    setTimeout(() => location.href = `/auth/verify?email=${encodeURIComponent(email)}`, 1000);
                 } else {
                     const data = await res.json();
                     msg.className = 'error';
