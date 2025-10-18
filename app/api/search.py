@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
 
+from cachetools import TTLCache
 from litestar import Router, get
 from litestar.datastructures import State
 
@@ -10,6 +11,8 @@ from models import (
     EmployeeTable as E,
     PCTable as P,
 )
+
+search_cache = TTLCache(maxsize=1000, ttl=300)
 
 
 @dataclass
@@ -22,17 +25,20 @@ class SearchResult:
 
 @get("/search")
 async def search(state: State, q: str = "") -> list[SearchResult]:
-    if not q.strip():
+    if not (query := q.strip()):
         return []
+
+    # クエリ正規化してキャッシュチェック
+    cache_key = query.lower()
+    if cache_key in search_cache:
+        return search_cache[cache_key]
 
     results = []
 
     # PC検索
-    pcs = await P.raw(
-        "SELECT * FROM pcs WHERE ARRAY[name, model, serial_number] &@~ {}",
-        q,
-    )
-    for pc in pcs:
+    for pc in await P.raw(
+        "SELECT * FROM pcs WHERE ARRAY[name, model, serial_number] &@~ {}", query
+    ):
         results.append(
             SearchResult(
                 type="pc",
@@ -43,10 +49,9 @@ async def search(state: State, q: str = "") -> list[SearchResult]:
         )
 
     # 社員検索
-    employees = await E.raw(
-        "SELECT * FROM employees WHERE ARRAY[name, email] &@~ {}", q
-    )
-    for emp in employees:
+    for emp in await E.raw(
+        "SELECT * FROM employees WHERE ARRAY[name, email] &@~ {}", query
+    ):
         results.append(
             SearchResult(
                 type="employee",
@@ -57,10 +62,9 @@ async def search(state: State, q: str = "") -> list[SearchResult]:
         )
 
     # ブログ検索
-    blogs = await B.raw(
-        "SELECT * FROM blog_posts WHERE ARRAY[title, content] &@~ {}", q
-    )
-    for blog in blogs:
+    for blog in await B.raw(
+        "SELECT * FROM blog_posts WHERE ARRAY[title, content] &@~ {}", query
+    ):
         results.append(
             SearchResult(
                 type="blog",
@@ -72,6 +76,7 @@ async def search(state: State, q: str = "") -> list[SearchResult]:
             )
         )
 
+    search_cache[cache_key] = results
     return results
 
 
