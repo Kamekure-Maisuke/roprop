@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}ブログ{% endblock %}
+{% block title %}タグ: {{ tag.name }} - ブログ{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -61,11 +61,25 @@
     .blog-tag:hover {
         opacity: 0.8;
     }
+    .tag-header {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: var(--pico-primary);
+        color: white;
+        border-radius: 0.5rem;
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<a href="/blogs/register" role="button">新規投稿</a>
+<div>
+    <span class="tag-header">{{ tag.name }}</span>
+</div>
+
+<a href="/blogs/view" role="button" class="secondary">← すべてのブログ</a>
 
 {% if pagination.items or pagination.current_page > 1 %}
     {% for post in pagination.items %}
@@ -115,6 +129,6 @@
 </nav>
 {% endif %}
 {% else %}
-<p style="text-align: center;">投稿されているブログはありません。</p>
+<p style="text-align: center;">このタグが付いたブログはありません。</p>
 {% endif %}
 {% endblock %}

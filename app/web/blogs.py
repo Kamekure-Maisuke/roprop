@@ -11,7 +11,15 @@ from litestar.response import Redirect, Template
 
 from app.auth import session_auth_guard
 from app.cache import delete_cached
-from models import BlogPost, BlogPostTable as B, Employee, EmployeeTable as E
+from models import (
+    BlogPost,
+    BlogPostTable as B,
+    BlogPostTagTable as BPT,
+    Employee,
+    EmployeeTable as E,
+    Tag,
+    TagTable as T,
+)
 
 FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)]
 
@@ -19,6 +27,25 @@ FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENC
 async def _get_or_404(blog_id: UUID) -> dict:
     if not (result := await B.select().where(B.id == blog_id).first()):
         raise NotFoundException(detail=f"Blog post with ID {blog_id} not found")
+    return result
+
+
+async def _load_tags(blog_ids: list[UUID]) -> dict[UUID, list[Tag]]:
+    """複数ブログのタグを一括読み込み"""
+    if not blog_ids:
+        return {}
+    tag_relations = await BPT.select(BPT.blog_post_id, BPT.tag_id).where(
+        BPT.blog_post_id.is_in(blog_ids)
+    )
+    tag_ids = {r["tag_id"] for r in tag_relations}
+    tags_dict = {}
+    if tag_ids:
+        tags_data = await T.select().where(T.id.is_in(tag_ids))
+        tags_dict = {t["id"]: Tag(id=t["id"], name=t["name"]) for t in tags_data}
+    result: dict[UUID, list[Tag]] = {bid: [] for bid in blog_ids}
+    for rel in tag_relations:
+        if tag := tags_dict.get(rel["tag_id"]):
+            result[rel["blog_post_id"]].append(tag)
     return result
 
 
@@ -38,6 +65,8 @@ async def view_blogs(request: Request, page: int = 1) -> Template:
             e["id"]: Employee(id=e["id"], name=e["name"])
             for e in await E.select(E.id, E.name).where(E.id.is_in(author_ids))
         }
+    blog_ids = [b["id"] for b in blogs]
+    tags_map = await _load_tags(blog_ids)
     posts = [
         BlogPost(
             id=b["id"],
@@ -46,6 +75,7 @@ async def view_blogs(request: Request, page: int = 1) -> Template:
             content=b["content"],
             created_at=b["created_at"],
             updated_at=b["updated_at"],
+            tags=tags_map.get(b["id"], []),
         )
         for b in blogs
     ]
@@ -69,6 +99,7 @@ async def view_blogs(request: Request, page: int = 1) -> Template:
 @get("/blogs/{blog_id:uuid}/detail")
 async def view_blog_detail(request: Request, blog_id: UUID) -> Template:
     result = await _get_or_404(blog_id)
+    tags_map = await _load_tags([blog_id])
     post = BlogPost(
         id=result["id"],
         author_id=result["author_id"],
@@ -76,6 +107,7 @@ async def view_blog_detail(request: Request, blog_id: UUID) -> Template:
         content=result["content"],
         created_at=result["created_at"],
         updated_at=result["updated_at"],
+        tags=tags_map.get(blog_id, []),
     )
     author = None
     if (
@@ -95,6 +127,76 @@ async def view_blog_detail(request: Request, blog_id: UUID) -> Template:
     )
 
 
+@get("/blogs/tag/{tag_id:uuid}")
+async def view_blogs_by_tag(request: Request, tag_id: UUID, page: int = 1) -> Template:
+    tag = await T.select().where(T.id == tag_id).first()
+    if not tag:
+        raise NotFoundException(detail=f"Tag with ID {tag_id} not found")
+    tag_obj = Tag(id=tag["id"], name=tag["name"])
+    page_size = 10
+    # タグに紐づくブログIDを取得
+    blog_post_relations = await BPT.select(BPT.blog_post_id).where(BPT.tag_id == tag_id)
+    blog_ids = [r["blog_post_id"] for r in blog_post_relations]
+    if not blog_ids:
+        return Template(
+            "blog_tag_list.html",
+            context={
+                "tag": tag_obj,
+                "pagination": ClassicPagination(
+                    items=[], page_size=page_size, current_page=page, total_pages=0
+                ),
+                "authors": {},
+                "user_id": request.state.user_id,
+                "user_role": request.state.role.value,
+            },
+        )
+    total = len(blog_ids)
+    offset = (page - 1) * page_size
+    paginated_ids = blog_ids[offset : offset + page_size]
+    blogs = (
+        await B.select()
+        .where(B.id.is_in(paginated_ids))
+        .order_by(B.created_at, ascending=False)
+    )
+    author_ids = {b["author_id"] for b in blogs}
+    authors = {}
+    if author_ids:
+        authors = {
+            e["id"]: Employee(id=e["id"], name=e["name"])
+            for e in await E.select(E.id, E.name).where(E.id.is_in(author_ids))
+        }
+    blog_ids_list = [b["id"] for b in blogs]
+    tags_map = await _load_tags(blog_ids_list)
+    posts = [
+        BlogPost(
+            id=b["id"],
+            author_id=b["author_id"],
+            title=b["title"],
+            content=b["content"],
+            created_at=b["created_at"],
+            updated_at=b["updated_at"],
+            tags=tags_map.get(b["id"], []),
+        )
+        for b in blogs
+    ]
+    pagination = ClassicPagination(
+        items=posts,
+        page_size=page_size,
+        current_page=page,
+        total_pages=(total + page_size - 1) // page_size,
+    )
+    return Template(
+        "blog_tag_list.html",
+        context={
+            "tag": tag_obj,
+            "pagination": pagination,
+            "authors": authors,
+            "user_id": request.state.user_id,
+            "user_role": request.state.role.value,
+        },
+    )
+
+
 @get("/blogs/my")
 async def view_my_blogs(request: Request, page: int = 1) -> Template:
     user_id = request.state.user_id
@@ -107,6 +209,8 @@ async def view_my_blogs(request: Request, page: int = 1) -> Template:
         .limit(page_size)
         .offset((page - 1) * page_size)
     )
+    blog_ids = [b["id"] for b in blogs]
+    tags_map = await _load_tags(blog_ids)
     posts = [
         BlogPost(
             id=b["id"],
@@ -115,6 +219,7 @@ async def view_my_blogs(request: Request, page: int = 1) -> Template:
             content=b["content"],
             created_at=b["created_at"],
             updated_at=b["updated_at"],
+            tags=tags_map.get(b["id"], []),
         )
         for b in blogs
     ]
@@ -136,7 +241,8 @@ async def view_my_blogs(request: Request, page: int = 1) -> Template:
 
 @get("/blogs/register")
 async def show_blog_register_form() -> Template:
-    return Template("blog_register.html", context={"success": False})
+    all_tags = [Tag(id=t["id"], name=t["name"]) for t in await T.select()]
+    return Template("blog_register.html", context={"success": False, "tags": all_tags})
 
 
 @post("/blogs/register")
@@ -156,8 +262,13 @@ async def register_blog(request: Request, data: FormData) -> Template:
         created_at=post.created_at,
         updated_at=post.updated_at,
     ).save()
+    # タグ関連を保存
+    tag_ids = data.get("tag_ids", "").split(",")
+    for tag_id in filter(None, tag_ids):
+        await BPT(blog_post_id=post.id, tag_id=UUID(tag_id.strip())).save()
     await delete_cached("blogs:list")
-    return Template("blog_register.html", context={"success": True})
+    all_tags = [Tag(id=t["id"], name=t["name"]) for t in await T.select()]
+    return Template("blog_register.html", context={"success": True, "tags": all_tags})
 
 
 @get("/blogs/{blog_id:uuid}/edit")
@@ -168,6 +279,7 @@ async def show_blog_edit_form(request: Request, blog_id: UUID) -> Template:
         and request.state.role.value != "admin"
     ):
         raise NotFoundException(detail="You don't have permission to edit this post")
+    tags_map = await _load_tags([blog_id])
     post = BlogPost(
         id=result["id"],
         author_id=result["author_id"],
@@ -175,8 +287,10 @@ async def show_blog_edit_form(request: Request, blog_id: UUID) -> Template:
         content=result["content"],
         created_at=result["created_at"],
         updated_at=result["updated_at"],
+        tags=tags_map.get(blog_id, []),
     )
-    return Template("blog_edit.html", context={"post": post})
+    all_tags = [Tag(id=t["id"], name=t["name"]) for t in await T.select()]
+    return Template("blog_edit.html", context={"post": post, "tags": all_tags})
 
 
 @post("/blogs/{blog_id:uuid}/edit")
@@ -194,6 +308,11 @@ async def edit_blog(request: Request, blog_id: UUID, data: FormData) -> Redirect
             B.updated_at: datetime.now(),
         }
     ).where(B.id == blog_id)
+    # タグ関連を更新
+    await BPT.delete().where(BPT.blog_post_id == blog_id)
+    tag_ids = data.get("tag_ids", "").split(",")
+    for tag_id in filter(None, tag_ids):
+        await BPT(blog_post_id=blog_id, tag_id=UUID(tag_id.strip())).save()
     await delete_cached("blogs:list")
     return Redirect(path="/blogs/view")
 
@@ -216,6 +335,7 @@ blog_web_router = Router(
     route_handlers=[
         view_blogs,
         view_blog_detail,
+        view_blogs_by_tag,
         view_my_blogs,
         show_blog_register_form,
         register_blog,
