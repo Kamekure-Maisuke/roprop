@@ -300,6 +300,7 @@ async def register_blog(request: Request, data: FormData) -> Template:
     for tag_id in filter(None, tag_ids):
         await BPT(blog_post_id=post.id, tag_id=UUID(tag_id.strip())).save()
     await delete_cached("blogs:list")
+    await delete_cached("dashboard:stats")
     all_tags = [Tag(id=t["id"], name=t["name"]) for t in await T.select()]
     return Template("blog_register.html", context={"success": True, "tags": all_tags})
 
@@ -347,6 +348,7 @@ async def edit_blog(request: Request, blog_id: UUID, data: FormData) -> Redirect
     for tag_id in filter(None, tag_ids):
         await BPT(blog_post_id=blog_id, tag_id=UUID(tag_id.strip())).save()
     await delete_cached("blogs:list")
+    await delete_cached("dashboard:stats")
     return Redirect(path="/blogs/view")
 
 
@@ -360,6 +362,7 @@ async def delete_blog(request: Request, blog_id: UUID) -> Redirect:
         raise NotFoundException(detail="You don't have permission to delete this post")
     await B.delete().where(B.id == blog_id)
     await delete_cached("blogs:list")
+    await delete_cached("dashboard:stats")
     return Redirect(path="/blogs/view")
 
 
@@ -375,6 +378,7 @@ async def like_blog(request: Request, blog_id: UUID, data: FormData) -> Redirect
         await BLT(
             blog_post_id=blog_id, employee_id=employee_id, created_at=datetime.now()
         ).save()
+        await delete_cached("dashboard:stats")
     # リダイレクト先を取得
     redirect_path = data.get("redirect", "/blogs/view")
     return Redirect(path=redirect_path)
@@ -385,9 +389,11 @@ async def unlike_blog(request: Request, blog_id: UUID, data: FormData) -> Redire
     """いいねを削除"""
     await _get_or_404(blog_id)
     employee_id = request.state.user_id
-    await BLT.delete().where(
+    deleted = await BLT.delete().where(
         (BLT.blog_post_id == blog_id) & (BLT.employee_id == employee_id)
     )
+    if deleted:
+        await delete_cached("dashboard:stats")
     # リダイレクト先を取得
     redirect_path = data.get("redirect", "/blogs/view")
     return Redirect(path=redirect_path)

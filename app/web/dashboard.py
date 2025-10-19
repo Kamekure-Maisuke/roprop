@@ -6,7 +6,13 @@ from litestar.response import Template
 
 from app.auth import session_auth_guard
 from app.cache import get_cached, set_cached
-from models import DepartmentTable as D, EmployeeTable as E, PCTable as P
+from models import (
+    BlogLikeTable as BLT,
+    BlogPostTable as B,
+    DepartmentTable as D,
+    EmployeeTable as E,
+    PCTable as P,
+)
 
 
 @get("/dashboard")
@@ -68,6 +74,50 @@ async def view_dashboard() -> Template:
                 }
             )
 
+    # ブログ統計: 投稿数トップ5
+    blog_posts = await B.select()
+    author_post_counts: dict[UUID, int] = {}
+    for post in blog_posts:
+        author_id = post["author_id"]
+        author_post_counts[author_id] = author_post_counts.get(author_id, 0) + 1
+
+    top_authors = sorted(author_post_counts.items(), key=lambda x: x[1], reverse=True)[
+        :5
+    ]
+    top_authors_data = []
+    if top_authors:
+        author_ids = [author_id for author_id, _ in top_authors]
+        authors_info = {
+            e["id"]: e["name"]
+            for e in await E.select(E.id, E.name).where(E.id.is_in(author_ids))
+        }
+        top_authors_data = [
+            {"name": authors_info.get(author_id, "不明"), "count": count}
+            for author_id, count in top_authors
+        ]
+
+    # ブログ統計: いいね数トップ5
+    blog_ids = [post["id"] for post in blog_posts]
+    blog_like_counts: dict[UUID, int] = {}
+    if blog_ids:
+        likes = await BLT.select(BLT.blog_post_id).where(
+            BLT.blog_post_id.is_in(blog_ids)
+        )
+        for like in likes:
+            blog_id = like["blog_post_id"]
+            blog_like_counts[blog_id] = blog_like_counts.get(blog_id, 0) + 1
+
+    top_liked_blogs = sorted(
+        blog_like_counts.items(), key=lambda x: x[1], reverse=True
+    )[:5]
+    top_liked_data = []
+    if top_liked_blogs:
+        blogs_dict = {post["id"]: post["title"] for post in blog_posts}
+        top_liked_data = [
+            {"title": blogs_dict.get(blog_id, "不明")[:30], "likes": likes}
+            for blog_id, likes in top_liked_blogs
+        ]
+
     context = {
         "dept_stats": list(dept_stats.values()),
         "unassigned_pc_count": unassigned_pc_count,
@@ -75,6 +125,10 @@ async def view_dashboard() -> Template:
         "total_employees": len(employees),
         "total_departments": len(departments),
         "alerts": alerts,
+        "total_blog_posts": len(blog_posts),
+        "total_blog_likes": sum(blog_like_counts.values()),
+        "top_authors": top_authors_data,
+        "top_liked_blogs": top_liked_data,
     }
     await set_cached("dashboard:stats", context)
     return Template(template_name="dashboard.html", context=context)
