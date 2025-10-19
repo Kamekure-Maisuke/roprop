@@ -12,6 +12,7 @@ from litestar.response import Redirect, Template
 from app.auth import session_auth_guard
 from app.cache import delete_cached
 from models import (
+    BlogLikeTable as BLT,
     BlogPost,
     BlogPostTable as B,
     BlogPostTagTable as BPT,
@@ -49,6 +50,26 @@ async def _load_tags(blog_ids: list[UUID]) -> dict[UUID, list[Tag]]:
     return result
 
 
+async def _load_likes(blog_ids: list[UUID], user_id: UUID) -> dict[UUID, dict]:
+    """複数ブログのいいね情報を一括読み込み"""
+    if not blog_ids:
+        return {}
+    # いいね数を取得
+    like_counts = {}
+    for blog_id in blog_ids:
+        count = await BLT.count().where(BLT.blog_post_id == blog_id)
+        like_counts[blog_id] = count
+    # ユーザーがいいね済みか確認
+    user_likes = await BLT.select(BLT.blog_post_id).where(
+        (BLT.blog_post_id.is_in(blog_ids)) & (BLT.employee_id == user_id)
+    )
+    liked_ids = {like["blog_post_id"] for like in user_likes}
+    return {
+        bid: {"count": like_counts.get(bid, 0), "is_liked": bid in liked_ids}
+        for bid in blog_ids
+    }
+
+
 @get("/blogs/view")
 async def view_blogs(request: Request, page: int = 1) -> Template:
     page_size, total = 10, await B.count()
@@ -67,6 +88,7 @@ async def view_blogs(request: Request, page: int = 1) -> Template:
         }
     blog_ids = [b["id"] for b in blogs]
     tags_map = await _load_tags(blog_ids)
+    likes_map = await _load_likes(blog_ids, request.state.user_id)
     posts = [
         BlogPost(
             id=b["id"],
@@ -76,6 +98,8 @@ async def view_blogs(request: Request, page: int = 1) -> Template:
             created_at=b["created_at"],
             updated_at=b["updated_at"],
             tags=tags_map.get(b["id"], []),
+            like_count=likes_map.get(b["id"], {}).get("count", 0),
+            is_liked=likes_map.get(b["id"], {}).get("is_liked", False),
         )
         for b in blogs
     ]
@@ -100,6 +124,7 @@ async def view_blogs(request: Request, page: int = 1) -> Template:
 async def view_blog_detail(request: Request, blog_id: UUID) -> Template:
     result = await _get_or_404(blog_id)
     tags_map = await _load_tags([blog_id])
+    likes_map = await _load_likes([blog_id], request.state.user_id)
     post = BlogPost(
         id=result["id"],
         author_id=result["author_id"],
@@ -108,6 +133,8 @@ async def view_blog_detail(request: Request, blog_id: UUID) -> Template:
         created_at=result["created_at"],
         updated_at=result["updated_at"],
         tags=tags_map.get(blog_id, []),
+        like_count=likes_map.get(blog_id, {}).get("count", 0),
+        is_liked=likes_map.get(blog_id, {}).get("is_liked", False),
     )
     author = None
     if (
@@ -167,6 +194,7 @@ async def view_blogs_by_tag(request: Request, tag_id: UUID, page: int = 1) -> Te
         }
     blog_ids_list = [b["id"] for b in blogs]
     tags_map = await _load_tags(blog_ids_list)
+    likes_map = await _load_likes(blog_ids_list, request.state.user_id)
     posts = [
         BlogPost(
             id=b["id"],
@@ -176,6 +204,8 @@ async def view_blogs_by_tag(request: Request, tag_id: UUID, page: int = 1) -> Te
             created_at=b["created_at"],
             updated_at=b["updated_at"],
             tags=tags_map.get(b["id"], []),
+            like_count=likes_map.get(b["id"], {}).get("count", 0),
+            is_liked=likes_map.get(b["id"], {}).get("is_liked", False),
         )
         for b in blogs
     ]
@@ -211,6 +241,7 @@ async def view_my_blogs(request: Request, page: int = 1) -> Template:
     )
     blog_ids = [b["id"] for b in blogs]
     tags_map = await _load_tags(blog_ids)
+    likes_map = await _load_likes(blog_ids, user_id)
     posts = [
         BlogPost(
             id=b["id"],
@@ -220,6 +251,8 @@ async def view_my_blogs(request: Request, page: int = 1) -> Template:
             created_at=b["created_at"],
             updated_at=b["updated_at"],
             tags=tags_map.get(b["id"], []),
+            like_count=likes_map.get(b["id"], {}).get("count", 0),
+            is_liked=likes_map.get(b["id"], {}).get("is_liked", False),
         )
         for b in blogs
     ]
@@ -330,6 +363,36 @@ async def delete_blog(request: Request, blog_id: UUID) -> Redirect:
     return Redirect(path="/blogs/view")
 
 
+@post("/blogs/{blog_id:uuid}/like")
+async def like_blog(request: Request, blog_id: UUID, data: FormData) -> Redirect:
+    """いいねを追加"""
+    await _get_or_404(blog_id)
+    employee_id = request.state.user_id
+    # 既にいいね済みか確認
+    if not await BLT.exists().where(
+        (BLT.blog_post_id == blog_id) & (BLT.employee_id == employee_id)
+    ):
+        await BLT(
+            blog_post_id=blog_id, employee_id=employee_id, created_at=datetime.now()
+        ).save()
+    # リダイレクト先を取得
+    redirect_path = data.get("redirect", "/blogs/view")
+    return Redirect(path=redirect_path)
+
+
+@post("/blogs/{blog_id:uuid}/unlike")
+async def unlike_blog(request: Request, blog_id: UUID, data: FormData) -> Redirect:
+    """いいねを削除"""
+    await _get_or_404(blog_id)
+    employee_id = request.state.user_id
+    await BLT.delete().where(
+        (BLT.blog_post_id == blog_id) & (BLT.employee_id == employee_id)
+    )
+    # リダイレクト先を取得
+    redirect_path = data.get("redirect", "/blogs/view")
+    return Redirect(path=redirect_path)
+
+
 blog_web_router = Router(
     path="",
     route_handlers=[
@@ -342,6 +405,8 @@ blog_web_router = Router(
         show_blog_edit_form,
         edit_blog,
         delete_blog,
+        like_blog,
+        unlike_blog,
     ],
     guards=[session_auth_guard],
 )

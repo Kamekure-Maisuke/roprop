@@ -15,6 +15,7 @@ from app.api.departments import department_api_router
 from app.api.chat import chat_api_router
 from app.api.search import search_router
 from app.api.tags import tag_api_router
+from app.api.blog_likes import blog_like_api_router
 
 from app.auth import SessionExpiredException
 from app.web.auth import auth_web_router
@@ -46,6 +47,7 @@ def create_app() -> Litestar:
             chat_api_router,
             search_router,
             tag_api_router,
+            blog_like_api_router,
             pc_web_router,
             employee_web_router,
             department_web_router,
