@@ -1,4 +1,3 @@
-# test
 FROM postgres:18-bookworm
 
 WORKDIR /tmp
