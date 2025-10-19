@@ -61,6 +61,21 @@
     .blog-tag:hover {
         opacity: 0.8;
     }
+    .like-section {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .like-section button {
+        margin: 0;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    .like-count {
+        color: var(--pico-muted-color);
+        font-size: 0.875rem;
+    }
 </style>
 {% endblock %}
 
@@ -85,6 +100,20 @@
         </div>
         {% endif %}
         <div class="blog-content">{{ post.content }}</div>
+        <div class="like-section">
+            {% if post.is_liked %}
+            <form method="POST" action="/blogs/{{ post.id }}/unlike" style="margin: 0">
+                <input type="hidden" name="redirect" value="/blogs/my?page={{ pagination.current_page }}">
+                <button type="submit" class="secondary">いいね解除</button>
+            </form>
+            {% else %}
+            <form method="POST" action="/blogs/{{ post.id }}/like" style="margin: 0">
+                <input type="hidden" name="redirect" value="/blogs/my?page={{ pagination.current_page }}">
+                <button type="submit" class="primary">いいね</button>
+            </form>
+            {% endif %}
+            <span class="like-count">{{ post.like_count }} いいね</span>
+        </div>
         <div class="action-buttons">
             <form method="GET" action="/blogs/{{ post.id }}/edit" style="margin: 0">
                 <button type="submit" class="secondary">編集</button>

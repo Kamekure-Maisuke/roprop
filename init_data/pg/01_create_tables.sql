@@ -88,3 +88,14 @@ CREATE TABLE IF NOT EXISTS blog_post_tags (
 );
 CREATE INDEX IF NOT EXISTS idx_blog_post_tags_blog_post_id ON blog_post_tags(blog_post_id);
 CREATE INDEX IF NOT EXISTS idx_blog_post_tags_tag_id ON blog_post_tags(tag_id);
+
+-- Create blog_likes table
+CREATE TABLE IF NOT EXISTS blog_likes (
+    id UUID PRIMARY KEY,
+    blog_post_id UUID NOT NULL REFERENCES blog_posts(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(blog_post_id, employee_id)
+);
+CREATE INDEX IF NOT EXISTS idx_blog_likes_blog_post_id ON blog_likes(blog_post_id);
+CREATE INDEX IF NOT EXISTS idx_blog_likes_employee_id ON blog_likes(employee_id);

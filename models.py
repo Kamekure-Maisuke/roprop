@@ -84,6 +84,16 @@ class BlogPost:
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     tags: list[Tag] = field(default_factory=list)
+    like_count: int = 0
+    is_liked: bool = False
+
+
+@dataclass
+class BlogLike:
+    id: UUID = field(default_factory=uuid4)
+    blog_post_id: UUID = field(default_factory=uuid4)
+    employee_id: UUID = field(default_factory=uuid4)
+    created_at: datetime = field(default_factory=datetime.now)
 
 
 # Piccoloテーブル (ORM)
@@ -148,6 +158,13 @@ class BlogPostTagTable(Table, tablename="blog_post_tags"):
     tag_id = PiccoloUUID(null=False)
 
 
+class BlogLikeTable(Table, tablename="blog_likes"):
+    id = PiccoloUUID(primary_key=True)
+    blog_post_id = PiccoloUUID(null=False)
+    employee_id = PiccoloUUID(null=False)
+    created_at = Timestamp(null=False)
+
+
 # データベースエンジン設定
 for table in [
     DepartmentTable,
@@ -158,5 +175,6 @@ for table in [
     BlogPostTable,
     TagTable,
     BlogPostTagTable,
+    BlogLikeTable,
 ]:
     table._meta._db = DB
