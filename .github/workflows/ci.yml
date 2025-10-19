@@ -47,15 +47,29 @@ jobs:
 
   dblint:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Check if DB-related files changed
+        id: db_check
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -qE '^(init_data/pg/.*\.sql|compose\.yaml|Dockerfile)$'; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Run docker compose
+        if: steps.db_check.outputs.changed == 'true'
         uses: hoverkraft-tech/compose-action@b716db5b717cb9b81e391fe638e5aceaa2299e43 # v2.4.0
         with:
           compose-file: "./compose.yaml"
 
       - name: Run dblinter
+        if: steps.db_check.outputs.changed == 'true'
         run: |
           docker run --rm --network host decathlon/dblinter:latest \
             --dbname postgres \
