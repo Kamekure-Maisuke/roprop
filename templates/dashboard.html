@@ -110,6 +110,14 @@
         <div class="stat-label">未割り当てPC</div>
         <div class="stat-number">{{ unassigned_pc_count }}</div>
     </article>
+    <article class="stat-card">
+        <div class="stat-label">総ブログ投稿数</div>
+        <div class="stat-number">{{ total_blog_posts }}</div>
+    </article>
+    <article class="stat-card">
+        <div class="stat-label">総いいね数</div>
+        <div class="stat-number">{{ total_blog_likes }}</div>
+    </article>
 </div>
 
 <div class="charts-container">
@@ -123,6 +131,22 @@
         <div class="chart-title">部署別PC割り当て状況</div>
         <div class="chart-wrapper">
             <canvas id="pieChart"></canvas>
+        </div>
+    </article>
+</div>
+
+<h2>ブログ統計</h2>
+<div class="charts-container">
+    <article class="chart-card">
+        <div class="chart-title">ブログ投稿数トップ5ユーザー</div>
+        <div class="chart-wrapper">
+            <canvas id="topAuthorsChart"></canvas>
+        </div>
+    </article>
+    <article class="chart-card">
+        <div class="chart-title">人気ブログトップ5（いいね数）</div>
+        <div class="chart-wrapper">
+            <canvas id="topLikedChart"></canvas>
         </div>
     </article>
 </div>
@@ -247,5 +271,76 @@
             }
         }
     });
+
+    // ブログ統計: 投稿数トップ5ユーザー
+    const topAuthors = {{ top_authors | tojson }};
+    if (topAuthors && topAuthors.length > 0) {
+        const authorNames = topAuthors.map(a => a.name);
+        const authorCounts = topAuthors.map(a => a.count);
+
+        const topAuthorsCtx = document.getElementById('topAuthorsChart').getContext('2d');
+        new Chart(topAuthorsCtx, {
+            type: 'bar',
+            data: {
+                labels: authorNames,
+                datasets: [{
+                    label: '投稿数',
+                    data: authorCounts,
+                    backgroundColor: 'rgba(33, 150, 243, 0.8)',
+                    borderColor: 'rgba(33, 150, 243, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    // ブログ統計: いいね数トップ5
+    const topLiked = {{ top_liked_blogs | tojson }};
+    if (topLiked && topLiked.length > 0) {
+        const blogTitles = topLiked.map(b => b.title);
+        const blogLikes = topLiked.map(b => b.likes);
+
+        const topLikedCtx = document.getElementById('topLikedChart').getContext('2d');
+        new Chart(topLikedCtx, {
+            type: 'bar',
+            data: {
+                labels: blogTitles,
+                datasets: [{
+                    label: 'いいね数',
+                    data: blogLikes,
+                    backgroundColor: 'rgba(255, 87, 34, 0.8)',
+                    borderColor: 'rgba(255, 87, 34, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
 </script>
 {% endblock %}
