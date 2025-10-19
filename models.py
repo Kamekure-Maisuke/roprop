@@ -70,6 +70,12 @@ class ChatMessage:
 
 
 @dataclass
+class Tag:
+    id: UUID = field(default_factory=uuid4)
+    name: str = ""
+
+
+@dataclass
 class BlogPost:
     id: UUID = field(default_factory=uuid4)
     author_id: UUID = field(default_factory=uuid4)
@@ -77,12 +83,7 @@ class BlogPost:
     content: str = ""
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
-
-
-@dataclass
-class Tag:
-    id: UUID = field(default_factory=uuid4)
-    name: str = ""
+    tags: list[Tag] = field(default_factory=list)
 
 
 # Piccoloテーブル (ORM)
@@ -141,6 +142,12 @@ class TagTable(Table, tablename="tags"):
     name = Varchar(length=255, null=False)
 
 
+class BlogPostTagTable(Table, tablename="blog_post_tags"):
+    id = PiccoloUUID(primary_key=True)
+    blog_post_id = PiccoloUUID(null=False)
+    tag_id = PiccoloUUID(null=False)
+
+
 # データベースエンジン設定
 for table in [
     DepartmentTable,
@@ -150,5 +157,6 @@ for table in [
     ChatMessageTable,
     BlogPostTable,
     TagTable,
+    BlogPostTagTable,
 ]:
     table._meta._db = DB

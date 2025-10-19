@@ -78,3 +78,13 @@ CREATE TABLE IF NOT EXISTS tags (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL
 );
+
+-- Create blog_post_tags junction table
+CREATE TABLE IF NOT EXISTS blog_post_tags (
+    id UUID PRIMARY KEY,
+    blog_post_id UUID NOT NULL REFERENCES blog_posts(id) ON DELETE CASCADE,
+    tag_id UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    UNIQUE(blog_post_id, tag_id)
+);
+CREATE INDEX IF NOT EXISTS idx_blog_post_tags_blog_post_id ON blog_post_tags(blog_post_id);
+CREATE INDEX IF NOT EXISTS idx_blog_post_tags_tag_id ON blog_post_tags(tag_id);

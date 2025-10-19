@@ -36,8 +36,28 @@
                 <textarea name="content" rows="15" required>{{ post.content }}</textarea>
             </label>
 
+            <label>
+                タグ:
+                <div style="border: 1px solid var(--pico-muted-border-color); border-radius: 0.25rem; padding: 0.5rem; max-height: 200px; overflow-y: auto;">
+                    {% set selected_tag_ids = post.tags|map(attribute='id')|map('string')|list %}
+                    {% for tag in tags %}
+                    <label style="display: block; margin: 0.25rem 0;">
+                        <input type="checkbox" name="tag_{{ tag.id }}" value="{{ tag.id }}" {% if tag.id|string in selected_tag_ids %}checked{% endif %} style="margin-right: 0.5rem;" />
+                        {{ tag.name }}
+                    </label>
+                    {% endfor %}
+                </div>
+                <input type="hidden" name="tag_ids" id="tag_ids" />
+            </label>
+
             <button type="submit">更新</button>
         </form>
+        <script>
+            document.querySelector('form').addEventListener('submit', function(e) {
+                const selected = Array.from(document.querySelectorAll('input[name^="tag_"]:checked')).map(cb => cb.value);
+                document.getElementById('tag_ids').value = selected.join(',');
+            });
+        </script>
 
         <a href="/blogs/view" role="button" class="secondary">← 一覧に戻る</a>
         </main>

@@ -3,11 +3,10 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 応答形式
-- シンプルな回答
 - 結果はシンプルに。過程やまとめは端的に技術的知見を分かりやすく回答。
 
 ## コード生成規約
-- 最も短く美しいロジックでPythonの標準的な記法に沿った可読性の高いコードで書く。
+- 動的計画法を用いて、処理効率が最も高いアルゴリズムを利用して、可読性の高いコードを書くこと。
 - LitestarやPiccolo ORMを便利に活用。
 - Unix哲学に従う。
 
