@@ -16,8 +16,10 @@ Litestar(Python) + PostgreSQLを使用したPC・社員・部署管理アプリ�
 
 リレーション: PC→社員(assigned_to)、社員→部署(department_id)、PC割り当て履歴(PCAssignmentHistory)
 
-## コマンド
-- README.mdを参照
+## 技術スタック
+- Python 3.13
+  - **pythonの実行は「uv run python」を利用すること。**
+- litestar
 
 ## アーキテクチャ
 
