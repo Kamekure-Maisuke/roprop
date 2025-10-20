@@ -1,9 +1,15 @@
 import os
+import sys
+from pathlib import Path
 from collections.abc import AsyncGenerator
 
 import pytest
 from unittest.mock import AsyncMock, patch
 from piccolo.engine.sqlite import SQLiteEngine
+from litestar.testing import TestClient
+
+# プロジェクトルートをPythonパスに追加
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # テスト環境であることを示す環境変数を設定（modelsインポート前に必要）
 os.environ["TESTING"] = "1"
@@ -19,6 +25,7 @@ from models import (
     PCTable,
     TagTable,
 )
+from main import create_app
 
 # pytest-asyncioの設定
 pytest_plugins = ("pytest_asyncio",)
@@ -73,3 +80,24 @@ async def setup_test_db() -> AsyncGenerator[None, None]:
     # テーブル削除（クリーンアップ）
     for table in reversed(tables):
         await table.alter().drop_table(if_exists=True).run()
+
+
+@pytest.fixture
+def client():
+    """テストクライアント"""
+    with TestClient(app=create_app()) as c:
+        yield c
+
+
+@pytest.fixture
+def auth_client():
+    """認証済みテストクライアント"""
+    with patch("app.auth.API_TOKEN", "test-token"):
+        with TestClient(app=create_app()) as c:
+            yield c
+
+
+@pytest.fixture
+def auth_headers():
+    """認証ヘッダー"""
+    return {"Authorization": "Bearer test-token"}
