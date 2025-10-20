@@ -16,9 +16,9 @@ from models import Employee, EmployeeTable as E, Role
 
 
 async def _get_or_404(employee_id: UUID) -> dict:
-    if not (result := await E.select().where(E.id == employee_id).first()):
+    if not await E.exists().where(E.id == employee_id):
         raise NotFoundException(detail=f"Employee with ID {employee_id} not found")
-    return result
+    return await E.select().where(E.id == employee_id).first()
 
 
 def _to_employee(data: dict, include_image: bool = False) -> Employee:

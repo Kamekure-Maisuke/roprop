@@ -87,6 +87,17 @@ async def show_pc_detail(pc_id: UUID) -> Template:
 @get("/pcs/view")
 async def view_pcs(request: Request, page: int = 1) -> Template:
     page_size, total = 10, await P.count()
+    pc_data = (
+        await P.select(
+            P.all_columns(),
+            P.assigned_to.name,
+            P.assigned_to.email,
+            P.assigned_to.department_id,
+        )
+        .limit(page_size)
+        .offset((page - 1) * page_size)
+    )
+
     pcs = [
         PC(
             id=p["id"],
@@ -95,16 +106,17 @@ async def view_pcs(request: Request, page: int = 1) -> Template:
             serial_number=p["serial_number"],
             assigned_to=p["assigned_to"],
         )
-        for p in await P.select().limit(page_size).offset((page - 1) * page_size)
+        for p in pc_data
     ]
     employees = {
-        e["id"]: Employee(
-            id=e["id"],
-            name=e["name"],
-            email=e["email"],
-            department_id=e["department_id"],
+        p["assigned_to"]: Employee(
+            id=p["assigned_to"],
+            name=p.get("assigned_to.name", ""),
+            email=p.get("assigned_to.email", ""),
+            department_id=p.get("assigned_to.department_id"),
         )
-        for e in await E.select(E.id, E.name, E.email, E.department_id)
+        for p in pc_data
+        if p["assigned_to"]
     }
     pagination = ClassicPagination(
         items=pcs,

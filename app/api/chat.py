@@ -36,10 +36,7 @@ async def send_message(data: SendMessageRequest, request: Request) -> dict[str, 
     receiver_id = UUID(data.receiver_id)
 
     # 受信者が存在するかチェック
-    receiver = (
-        await EmployeeTable.select().where(EmployeeTable.id == receiver_id).first()
-    )
-    if not receiver:
+    if not await EmployeeTable.exists().where(EmployeeTable.id == receiver_id):
         raise ValidationException(detail="受信者が見つかりません")
 
     # メッセージをDBに保存

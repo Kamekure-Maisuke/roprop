@@ -10,9 +10,9 @@ from models import Department, DepartmentTable as D
 
 async def _get_or_404(department_id: UUID) -> dict:
     """部署を取得、存在しなければ404エラー"""
-    if not (result := await D.select().where(D.id == department_id).first()):
+    if not await D.exists().where(D.id == department_id):
         raise NotFoundException(detail=f"Department with ID {department_id} not found")
-    return result
+    return await D.select().where(D.id == department_id).first()
 
 
 def _to_department(data: dict) -> Department:

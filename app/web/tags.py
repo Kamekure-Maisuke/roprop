@@ -16,9 +16,9 @@ FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENC
 
 async def _get_or_404(tag_id: UUID) -> dict:
     """部署を取得、存在しなければ404エラー"""
-    if not (result := await T.select().where(T.id == tag_id).first()):
+    if not await T.exists().where(T.id == tag_id):
         raise NotFoundException(detail=f"Tag with ID {tag_id} not found")
-    return result
+    return await T.select().where(T.id == tag_id).first()
 
 
 @get("/tags/view")

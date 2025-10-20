@@ -7,6 +7,7 @@ from piccolo.columns import (
     Bytea,
     Boolean,
     Date,
+    ForeignKey,
     Text,
     Timestamp,
     UUID as PiccoloUUID,
@@ -106,7 +107,7 @@ class EmployeeTable(Table, tablename="employees"):
     id = PiccoloUUID(primary_key=True)
     name = Varchar(length=255, null=False)
     email = Varchar(length=255, null=False, unique=True)
-    department_id = PiccoloUUID(null=True)
+    department_id = ForeignKey(references=DepartmentTable, null=True)
     profile_image = Bytea(null=True)
     resignation_date = Date(null=True)
     transfer_date = Date(null=True)
@@ -118,21 +119,21 @@ class PCTable(Table, tablename="pcs"):
     name = Varchar(length=255, null=False)
     model = Varchar(length=255, null=False)
     serial_number = Varchar(length=255, null=False, unique=True)
-    assigned_to = PiccoloUUID(null=True)
+    assigned_to = ForeignKey(references=EmployeeTable, null=True)
 
 
 class PCAssignmentHistoryTable(Table, tablename="pc_assignment_histories"):
     id = PiccoloUUID(primary_key=True)
-    pc_id = PiccoloUUID(null=False)
-    employee_id = PiccoloUUID(null=True)
+    pc_id = ForeignKey(references=PCTable, null=False)
+    employee_id = ForeignKey(references=EmployeeTable, null=True)
     assigned_at = Timestamp(null=False)
     notes = Text(default="")
 
 
 class ChatMessageTable(Table, tablename="chat_messages"):
     id = PiccoloUUID(primary_key=True)
-    sender_id = PiccoloUUID(null=False)
-    receiver_id = PiccoloUUID(null=False)
+    sender_id = ForeignKey(references=EmployeeTable, null=False)
+    receiver_id = ForeignKey(references=EmployeeTable, null=False)
     content = Text(null=False)
     created_at = Timestamp(null=False)
     is_read = Boolean(default=False)
@@ -140,7 +141,7 @@ class ChatMessageTable(Table, tablename="chat_messages"):
 
 class BlogPostTable(Table, tablename="blog_posts"):
     id = PiccoloUUID(primary_key=True)
-    author_id = PiccoloUUID(null=False)
+    author_id = ForeignKey(references=EmployeeTable, null=False)
     title = Varchar(length=255, null=False)
     content = Text(null=False)
     created_at = Timestamp(null=False)
@@ -154,14 +155,14 @@ class TagTable(Table, tablename="tags"):
 
 class BlogPostTagTable(Table, tablename="blog_post_tags"):
     id = PiccoloUUID(primary_key=True)
-    blog_post_id = PiccoloUUID(null=False)
-    tag_id = PiccoloUUID(null=False)
+    blog_post_id = ForeignKey(references=BlogPostTable, null=False)
+    tag_id = ForeignKey(references=TagTable, null=False)
 
 
 class BlogLikeTable(Table, tablename="blog_likes"):
     id = PiccoloUUID(primary_key=True)
-    blog_post_id = PiccoloUUID(null=False)
-    employee_id = PiccoloUUID(null=False)
+    blog_post_id = ForeignKey(references=BlogPostTable, null=False)
+    employee_id = ForeignKey(references=EmployeeTable, null=False)
     created_at = Timestamp(null=False)
 
 

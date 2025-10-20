@@ -21,8 +21,8 @@ async def view_dashboard() -> Template:
         return Template(template_name="dashboard.html", context=cached)
 
     departments = await D.select()
-    employees = await E.select()
-    pcs = await P.select()
+    employees = await E.select(E.all_columns())
+    pcs = await P.select(P.all_columns())
 
     dept_stats: dict[UUID, dict[str, str | int]] = {
         d["id"]: {"name": d["name"], "employee_count": 0, "pc_count": 0}
