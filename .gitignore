@@ -12,3 +12,7 @@ wheels/
 # env
 .env
 .envrc
+
+# Test databases
+*.sqlite
+*.db

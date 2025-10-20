@@ -166,15 +166,17 @@ class BlogLikeTable(Table, tablename="blog_likes"):
 
 
 # データベースエンジン設定
-for table in [
-    DepartmentTable,
-    EmployeeTable,
-    PCTable,
-    PCAssignmentHistoryTable,
-    ChatMessageTable,
-    BlogPostTable,
-    TagTable,
-    BlogPostTagTable,
-    BlogLikeTable,
-]:
-    table._meta._db = DB
+# テスト環境以外で本番DBエンジンを設定
+if DB is not None:
+    for table in [
+        DepartmentTable,
+        EmployeeTable,
+        PCTable,
+        PCAssignmentHistoryTable,
+        ChatMessageTable,
+        BlogPostTable,
+        TagTable,
+        BlogPostTagTable,
+        BlogLikeTable,
+    ]:
+        table._meta._db = DB
