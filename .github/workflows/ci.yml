@@ -27,11 +27,6 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Run docker compose
-        uses: hoverkraft-tech/compose-action@b716db5b717cb9b81e391fe638e5aceaa2299e43 # v2.4.0
-        with:
-          compose-file: "./compose.yaml"
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
