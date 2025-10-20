@@ -33,11 +33,7 @@ async def check_rate_limit(key: str, max: int, window: int) -> None:
 async def send_otp(data: SendOTPRequest) -> dict[str, str]:
     """OTP送信"""
     await check_rate_limit(f"rate:otp:{data.email}", 5, 300)
-    if (
-        not await EmployeeTable.select()
-        .where(EmployeeTable.email == data.email)
-        .first()
-    ):
+    if not await EmployeeTable.exists().where(EmployeeTable.email == data.email):
         raise NotAuthorizedException(detail="メールアドレスが登録されていません")
 
     otp = "".join(str(secrets.randbelow(10)) for _ in range(6))

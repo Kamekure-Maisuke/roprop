@@ -26,9 +26,9 @@ FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENC
 
 
 async def _get_or_404(blog_id: UUID) -> dict:
-    if not (result := await B.select().where(B.id == blog_id).first()):
+    if not await B.exists().where(B.id == blog_id):
         raise NotFoundException(detail=f"Blog post with ID {blog_id} not found")
-    return result
+    return await B.select().where(B.id == blog_id).first()
 
 
 async def _load_tags(blog_ids: list[UUID]) -> dict[UUID, list[Tag]]:

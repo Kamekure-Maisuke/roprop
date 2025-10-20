@@ -21,9 +21,9 @@ from models import (
 
 
 async def _get_or_404(pc_id: UUID) -> dict:
-    if not (result := await P.select().where(P.id == pc_id).first()):
+    if not await P.exists().where(P.id == pc_id):
         raise NotFoundException(detail=f"PC with ID {pc_id} not found")
-    return result
+    return await P.select().where(P.id == pc_id).first()
 
 
 def _to_pc(data: dict) -> PC:
