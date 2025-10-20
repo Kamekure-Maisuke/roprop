@@ -16,7 +16,6 @@ from models import (
     PCAssignmentHistory,
     PCAssignmentHistoryTable as H,
     PCTable as P,
-    EmployeeTable as E,
 )
 
 
@@ -66,8 +65,11 @@ async def create_pc(data: PC) -> PC:
     # Slack通知
     assigned_name = None
     if data.assigned_to:
-        if emp := await E.select().where(E.id == data.assigned_to).first():
-            assigned_name = emp["name"]
+        pc_with_employee = (
+            await P.select(P.assigned_to.name).where(P.id == data.id).first()
+        )
+        if pc_with_employee and pc_with_employee.get("assigned_to.name"):
+            assigned_name = pc_with_employee["assigned_to.name"]
     await notify_slack(
         format_pc_created(
             data.name, data.id, data.model, data.serial_number, assigned_name
@@ -81,7 +83,7 @@ async def create_pc(data: PC) -> PC:
 async def list_pcs() -> list[PC]:
     if cached := await get_cached("pcs:list"):
         return [PC(**p) for p in cached]
-    result = [_to_pc(r) for r in await P.select()]
+    result = [_to_pc(r) for r in await P.select(P.all_columns())]
     await set_cached("pcs:list", [p.__dict__ for p in result])
     return result
 
@@ -111,8 +113,11 @@ async def update_pc(pc_id: UUID, data: PC) -> PC:
     # Slack通知
     assigned_name = None
     if data.assigned_to:
-        if emp := await E.select().where(E.id == data.assigned_to).first():
-            assigned_name = emp["name"]
+        pc_with_employee = (
+            await P.select(P.assigned_to.name).where(P.id == pc_id).first()
+        )
+        if pc_with_employee and pc_with_employee.get("assigned_to.name"):
+            assigned_name = pc_with_employee["assigned_to.name"]
     await notify_slack(
         format_pc_updated(
             data.name, pc_id, data.model, data.serial_number, assigned_name

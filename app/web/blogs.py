@@ -54,16 +54,17 @@ async def _load_likes(blog_ids: list[UUID], user_id: UUID) -> dict[UUID, dict]:
     """複数ブログのいいね情報を一括読み込み"""
     if not blog_ids:
         return {}
-    # いいね数を取得
-    like_counts = {}
-    for blog_id in blog_ids:
-        count = await BLT.count().where(BLT.blog_post_id == blog_id)
-        like_counts[blog_id] = count
-    # ユーザーがいいね済みか確認
-    user_likes = await BLT.select(BLT.blog_post_id).where(
-        (BLT.blog_post_id.is_in(blog_ids)) & (BLT.employee_id == user_id)
+    # 全いいねを一括取得してカウント
+    all_likes = await BLT.select(BLT.blog_post_id, BLT.employee_id).where(
+        BLT.blog_post_id.is_in(blog_ids)
     )
-    liked_ids = {like["blog_post_id"] for like in user_likes}
+    like_counts: dict[UUID, int] = {}
+    liked_ids: set[UUID] = set()
+    for like in all_likes:
+        blog_id = like["blog_post_id"]
+        like_counts[blog_id] = like_counts.get(blog_id, 0) + 1
+        if like["employee_id"] == user_id:
+            liked_ids.add(blog_id)
     return {
         bid: {"count": like_counts.get(bid, 0), "is_liked": bid in liked_ids}
         for bid in blog_ids
@@ -74,18 +75,18 @@ async def _load_likes(blog_ids: list[UUID], user_id: UUID) -> dict[UUID, dict]:
 async def view_blogs(request: Request, page: int = 1) -> Template:
     page_size, total = 10, await B.count()
     blogs = (
-        await B.select()
+        await B.select(B.all_columns(), B.author_id.name)
         .order_by(B.created_at, ascending=False)
         .limit(page_size)
         .offset((page - 1) * page_size)
     )
-    author_ids = {b["author_id"] for b in blogs}
-    authors = {}
-    if author_ids:
-        authors = {
-            e["id"]: Employee(id=e["id"], name=e["name"])
-            for e in await E.select(E.id, E.name).where(E.id.is_in(author_ids))
-        }
+    authors = {
+        b["author_id"]: Employee(
+            id=b["author_id"], name=b.get("author_id.name", "不明")
+        )
+        for b in blogs
+        if b["author_id"]
+    }
     blog_ids = [b["id"] for b in blogs]
     tags_map = await _load_tags(blog_ids)
     likes_map = await _load_likes(blog_ids, request.state.user_id)
@@ -122,7 +123,11 @@ async def view_blogs(request: Request, page: int = 1) -> Template:
 
 @get("/blogs/{blog_id:uuid}/detail")
 async def view_blog_detail(request: Request, blog_id: UUID) -> Template:
-    result = await _get_or_404(blog_id)
+    result = (
+        await B.select(B.all_columns(), B.author_id.name).where(B.id == blog_id).first()
+    )
+    if not result:
+        raise NotFoundException(detail=f"Blog post with ID {blog_id} not found")
     tags_map = await _load_tags([blog_id])
     likes_map = await _load_likes([blog_id], request.state.user_id)
     post = BlogPost(
@@ -136,13 +141,11 @@ async def view_blog_detail(request: Request, blog_id: UUID) -> Template:
         like_count=likes_map.get(blog_id, {}).get("count", 0),
         is_liked=likes_map.get(blog_id, {}).get("is_liked", False),
     )
-    author = None
-    if (
-        author_data := await E.select(E.id, E.name)
-        .where(E.id == post.author_id)
-        .first()
-    ):
-        author = Employee(id=author_data["id"], name=author_data["name"])
+    author = (
+        Employee(id=result["author_id"], name=result.get("author_id.name", "不明"))
+        if result["author_id"]
+        else None
+    )
     return Template(
         "blog_detail.html",
         context={
