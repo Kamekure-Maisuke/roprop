@@ -8,6 +8,7 @@ from piccolo.columns import (
     Boolean,
     Date,
     ForeignKey,
+    Integer,
     Text,
     Timestamp,
     UUID as PiccoloUUID,
@@ -97,6 +98,33 @@ class BlogLike:
     created_at: datetime = field(default_factory=datetime.now)
 
 
+@dataclass
+class MeetingRoom:
+    id: UUID = field(default_factory=uuid4)
+    name: str = ""
+    capacity: int = 0
+    location: str = ""
+    equipment: str = ""
+
+
+@dataclass
+class MeetingRoomReservation:
+    id: UUID = field(default_factory=uuid4)
+    meeting_room_id: UUID = field(default_factory=uuid4)
+    title: str = ""
+    start_time: datetime = field(default_factory=datetime.now)
+    end_time: datetime = field(default_factory=datetime.now)
+    created_by: UUID = field(default_factory=uuid4)
+    created_at: datetime = field(default_factory=datetime.now)
+
+
+@dataclass
+class ReservationParticipant:
+    id: UUID = field(default_factory=uuid4)
+    reservation_id: UUID = field(default_factory=uuid4)
+    employee_id: UUID = field(default_factory=uuid4)
+
+
 # Piccoloテーブル (ORM)
 class DepartmentTable(Table, tablename="departments"):
     id = PiccoloUUID(primary_key=True)
@@ -166,6 +194,30 @@ class BlogLikeTable(Table, tablename="blog_likes"):
     created_at = Timestamp(null=False)
 
 
+class MeetingRoomTable(Table, tablename="meeting_rooms"):
+    id = PiccoloUUID(primary_key=True)
+    name = Varchar(length=255, null=False)
+    capacity = Integer(null=False, default=0)
+    location = Varchar(length=255, null=False)
+    equipment = Text(default="")
+
+
+class MeetingRoomReservationTable(Table, tablename="meeting_room_reservations"):
+    id = PiccoloUUID(primary_key=True)
+    meeting_room_id = ForeignKey(references=MeetingRoomTable, null=False)
+    title = Varchar(length=255, null=False)
+    start_time = Timestamp(null=False)
+    end_time = Timestamp(null=False)
+    created_by = ForeignKey(references=EmployeeTable, null=False)
+    created_at = Timestamp(null=False)
+
+
+class ReservationParticipantTable(Table, tablename="reservation_participants"):
+    id = PiccoloUUID(primary_key=True)
+    reservation_id = ForeignKey(references=MeetingRoomReservationTable, null=False)
+    employee_id = ForeignKey(references=EmployeeTable, null=False)
+
+
 # データベースエンジン設定
 # テスト環境以外で本番DBエンジンを設定
 if DB is not None:
@@ -179,5 +231,8 @@ if DB is not None:
         TagTable,
         BlogPostTagTable,
         BlogLikeTable,
+        MeetingRoomTable,
+        MeetingRoomReservationTable,
+        ReservationParticipantTable,
     ]:
         table._meta._db = DB

@@ -3,9 +3,8 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>{% block title %}リソース管理システム{% endblock %}</title>
+        <title>会議室登録画面</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
-        {% block extra_head %}{% endblock %}
     </head>
     <body>
         <nav>
@@ -18,32 +17,44 @@
                 <li><a href="/employees/view">社員管理</a></li>
                 <li><a href="/departments/view">部署管理</a></li>
                 <li><a href="/meeting_rooms/view">会議室管理</a></li>
-                <li><a href="/reservations/view">予約管理</a></li>
-                <li><a href="/tags/view">タグ管理</a></li>
                 <li><a href="/history/view">履歴管理</a></li>
                 <li><a href="/blogs/view">ブログ</a></li>
                 <li><a href="/blogs/my">マイブログ</a></li>
-                <li><a href="/chat">チャット</a></li>
-                <li>
-                    <form method="GET" action="/search/view" style="margin: 0; display: flex; align-items: center;">
-                        <input type="search" name="q" placeholder="検索..." style="margin: 0; padding: 0.25rem 0.5rem; width: 150px;" required>
-                    </form>
-                </li>
                 <li><a href="/mypage">マイページ</a></li>
-                <li><a href="#" onclick="logout(event)">ログアウト</a></li>
             </ul>
         </nav>
         <main class="container">
-            {% block content %}{% endblock %}
+        <h1>会議室登録</h1>
+
+        {% if success %}
+        <article style="background-color: var(--pico-ins-color);">会議室を登録しました。</article>
+        {% endif %}
+
+        <form method="POST" action="/meeting_rooms/register">
+            <label>
+                名前:
+                <input type="text" name="name" required />
+            </label>
+
+            <label>
+                収容人数:
+                <input type="number" name="capacity" min="1" required />
+            </label>
+
+            <label>
+                場所:
+                <input type="text" name="location" required />
+            </label>
+
+            <label>
+                設備:
+                <textarea name="equipment" rows="3"></textarea>
+            </label>
+
+            <button type="submit">登録</button>
+        </form>
+
+        <a href="/meeting_rooms/view" role="button" class="secondary">← 一覧に戻る</a>
         </main>
-        {% block extra_scripts %}
-        <script>
-            async function logout(e) {
-                e.preventDefault();
-                await fetch('/auth/logout', { method: 'POST' });
-                location.href = '/auth/login';
-            }
-        </script>
-        {% endblock %}
     </body>
 </html>

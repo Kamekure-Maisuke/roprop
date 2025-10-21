@@ -16,6 +16,8 @@ from app.api.chat import chat_api_router
 from app.api.search import search_router
 from app.api.tags import tag_api_router
 from app.api.blog_likes import blog_like_api_router
+from app.api.meeting_rooms import meeting_room_api_router
+from app.api.reservations import reservation_api_router
 
 from app.auth import SessionExpiredException
 from app.web.auth import auth_web_router
@@ -28,6 +30,8 @@ from app.web.chat import chat_web_router
 from app.web.blogs import blog_web_router
 from app.web.search import search_web_router
 from app.web.tags import tag_web_router
+from app.web.meeting_rooms import meeting_room_web_router
+from app.web.reservations import reservation_web_router
 
 
 def session_expired_handler(request: Request, exc: SessionExpiredException) -> Redirect:
@@ -48,6 +52,8 @@ def create_app() -> Litestar:
             search_router,
             tag_api_router,
             blog_like_api_router,
+            meeting_room_api_router,
+            reservation_api_router,
             pc_web_router,
             employee_web_router,
             department_web_router,
@@ -56,6 +62,8 @@ def create_app() -> Litestar:
             blog_web_router,
             search_web_router,
             tag_web_router,
+            meeting_room_web_router,
+            reservation_web_router,
         ],
         exception_handlers={SessionExpiredException: session_expired_handler},
         template_config=TemplateConfig(

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}会議室予約管理{% endblock %}
+
+{% block extra_head %}
+<style>
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .action-buttons a, .action-buttons button {
+        margin: 0;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    .participants {
+        font-size: 0.875rem;
+        color: var(--pico-muted-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="/reservations/register" role="button">新規予約</a>
+
+{% if pagination.items or pagination.current_page > 1 %}
+<figure>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>タイトル</th>
+                <th>会議室</th>
+                <th>開始時刻</th>
+                <th>終了時刻</th>
+                <th>作成者</th>
+                <th>参加者</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for reservation in pagination.items %}
+            <tr>
+                <td>{{ reservation.title }}</td>
+                <td>{{ reservation.room_name }}</td>
+                <td>{{ reservation.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ reservation.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ reservation.creator_name }}</td>
+                <td>
+                    <div class="participants">
+                        {% if reservation.participants %}
+                            {% for p in reservation.participants %}
+                                {{ p.name }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            なし
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="/reservations/{{ reservation.id }}/edit" role="button" class="secondary">編集</a>
+                        <form method="POST" action="/reservations/{{ reservation.id }}/delete" style="margin: 0">
+                            <button type="submit" class="secondary" onclick="return confirm('本当に削除しますか？')">削除</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</figure>
+
+{% if pagination.total_pages > 1 %}
+<nav aria-label="ページネーション" style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
+    <ul style="display: flex; gap: 0.5rem; list-style: none; padding: 0; justify-content: center;">
+        {% if pagination.current_page > 1 %}
+        <li><a href="?page={{ pagination.current_page - 1 }}" role="button" class="secondary">前へ</a></li>
+        {% endif %}
+        {% for p in range(1, pagination.total_pages + 1) %}
+        <li><a href="?page={{ p }}" role="button" class="{% if p == pagination.current_page %}contrast{% else %}secondary{% endif %}">{{ p }}</a></li>
+        {% endfor %}
+        {% if pagination.current_page < pagination.total_pages %}
+        <li><a href="?page={{ pagination.current_page + 1 }}" role="button" class="secondary">次へ</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% else %}
+<p style="text-align: center;">予約はありません。</p>
+{% endif %}
+{% endblock %}

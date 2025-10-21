@@ -99,3 +99,38 @@ CREATE TABLE IF NOT EXISTS blog_likes (
 );
 CREATE INDEX IF NOT EXISTS idx_blog_likes_blog_post_id ON blog_likes(blog_post_id);
 CREATE INDEX IF NOT EXISTS idx_blog_likes_employee_id ON blog_likes(employee_id);
+
+-- Create meeting_rooms table
+CREATE TABLE IF NOT EXISTS meeting_rooms (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    capacity INTEGER NOT NULL DEFAULT 0,
+    location VARCHAR(255) NOT NULL,
+    equipment TEXT DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_meeting_rooms_capacity ON meeting_rooms(capacity);
+CREATE INDEX IF NOT EXISTS idx_meeting_rooms_location ON meeting_rooms(location);
+
+-- Create meeting_room_reservations table
+CREATE TABLE IF NOT EXISTS meeting_room_reservations (
+    id UUID PRIMARY KEY,
+    meeting_room_id UUID NOT NULL REFERENCES meeting_rooms(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_meeting_room_reservations_room_id ON meeting_room_reservations(meeting_room_id);
+CREATE INDEX IF NOT EXISTS idx_meeting_room_reservations_start_time ON meeting_room_reservations(start_time);
+CREATE INDEX IF NOT EXISTS idx_meeting_room_reservations_created_by ON meeting_room_reservations(created_by);
+
+-- Create reservation_participants table
+CREATE TABLE IF NOT EXISTS reservation_participants (
+    id UUID PRIMARY KEY,
+    reservation_id UUID NOT NULL REFERENCES meeting_room_reservations(id) ON DELETE CASCADE,
+    employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+    UNIQUE(reservation_id, employee_id)
+);
+CREATE INDEX IF NOT EXISTS idx_reservation_participants_reservation_id ON reservation_participants(reservation_id);
+CREATE INDEX IF NOT EXISTS idx_reservation_participants_employee_id ON reservation_participants(employee_id);
