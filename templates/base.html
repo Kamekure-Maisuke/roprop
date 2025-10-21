@@ -5,6 +5,74 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{% block title %}リソース管理システム{% endblock %}</title>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+        <script src="https://unpkg.com/lucide@latest"></script>
+        <style>
+            nav {
+                padding: 0.5rem 1rem;
+            }
+            nav ul li {
+                margin-right: 0.5rem;
+            }
+            .nav-icon {
+                width: 18px;
+                height: 18px;
+                vertical-align: middle;
+                margin-right: 4px;
+            }
+            .dropdown {
+                position: relative;
+                display: inline-block;
+            }
+            .dropdown-content {
+                display: none;
+                position: absolute;
+                background-color: var(--pico-background-color);
+                min-width: 180px;
+                box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+                z-index: 1;
+                border-radius: 4px;
+                border: 1px solid var(--pico-muted-border-color);
+                margin-top: 0.5rem;
+            }
+            .dropdown-content a {
+                color: var(--pico-color);
+                padding: 0.75rem 1rem;
+                text-decoration: none;
+                display: block;
+                transition: background-color 0.2s;
+            }
+            .dropdown-content a:hover {
+                background-color: var(--pico-secondary-background);
+            }
+            .dropdown:hover .dropdown-content {
+                display: block;
+            }
+            .dropdown > a {
+                cursor: pointer;
+            }
+            .search-form {
+                margin: 0;
+                display: flex;
+                align-items: center;
+            }
+            .search-form input {
+                margin: 0;
+                padding: 0.25rem 0.5rem;
+                width: 150px;
+                font-size: 0.9rem;
+            }
+            @media (max-width: 768px) {
+                nav ul li {
+                    margin-right: 0.25rem;
+                }
+                .nav-text {
+                    display: none;
+                }
+                .search-form input {
+                    width: 100px;
+                }
+            }
+        </style>
         {% block extra_head %}{% endblock %}
     </head>
     <body>
@@ -13,24 +81,86 @@
                 <li><strong>リソース管理システム</strong></li>
             </ul>
             <ul>
-                <li><a href="/dashboard">ダッシュボード</a></li>
-                <li><a href="/pcs/view">PC管理</a></li>
-                <li><a href="/employees/view">社員管理</a></li>
-                <li><a href="/departments/view">部署管理</a></li>
-                <li><a href="/meeting_rooms/view">会議室管理</a></li>
-                <li><a href="/reservations/view">予約管理</a></li>
-                <li><a href="/tags/view">タグ管理</a></li>
-                <li><a href="/history/view">履歴管理</a></li>
-                <li><a href="/blogs/view">ブログ</a></li>
-                <li><a href="/blogs/my">マイブログ</a></li>
-                <li><a href="/chat">チャット</a></li>
                 <li>
-                    <form method="GET" action="/search/view" style="margin: 0; display: flex; align-items: center;">
-                        <input type="search" name="q" placeholder="検索..." style="margin: 0; padding: 0.25rem 0.5rem; width: 150px;" required>
+                    <a href="/dashboard">
+                        <i data-lucide="layout-dashboard" class="nav-icon"></i>
+                        <span class="nav-text">ダッシュボード</span>
+                    </a>
+                </li>
+                <li class="dropdown">
+                    <a>
+                        <i data-lucide="folder-cog" class="nav-icon"></i>
+                        <span class="nav-text">管理</span>
+                        <i data-lucide="chevron-down" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+                    </a>
+                    <div class="dropdown-content">
+                        <a href="/pcs/view">
+                            <i data-lucide="monitor" class="nav-icon"></i> PC管理
+                        </a>
+                        <a href="/employees/view">
+                            <i data-lucide="users" class="nav-icon"></i> 社員管理
+                        </a>
+                        <a href="/departments/view">
+                            <i data-lucide="building" class="nav-icon"></i> 部署管理
+                        </a>
+                        <a href="/meeting_rooms/view">
+                            <i data-lucide="door-open" class="nav-icon"></i> 会議室管理
+                        </a>
+                        <a href="/tags/view">
+                            <i data-lucide="tag" class="nav-icon"></i> タグ管理
+                        </a>
+                    </div>
+                </li>
+                <li>
+                    <a href="/reservations/view">
+                        <i data-lucide="calendar-check" class="nav-icon"></i>
+                        <span class="nav-text">予約</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/history/view">
+                        <i data-lucide="history" class="nav-icon"></i>
+                        <span class="nav-text">履歴</span>
+                    </a>
+                </li>
+                <li class="dropdown">
+                    <a>
+                        <i data-lucide="file-text" class="nav-icon"></i>
+                        <span class="nav-text">ブログ</span>
+                        <i data-lucide="chevron-down" style="width: 14px; height: 14px; vertical-align: middle;"></i>
+                    </a>
+                    <div class="dropdown-content">
+                        <a href="/blogs/view">
+                            <i data-lucide="newspaper" class="nav-icon"></i> 全ブログ
+                        </a>
+                        <a href="/blogs/my">
+                            <i data-lucide="user-pen" class="nav-icon"></i> マイブログ
+                        </a>
+                    </div>
+                </li>
+                <li>
+                    <a href="/chat">
+                        <i data-lucide="message-circle" class="nav-icon"></i>
+                        <span class="nav-text">チャット</span>
+                    </a>
+                </li>
+                <li>
+                    <form method="GET" action="/search/view" class="search-form">
+                        <input type="search" name="q" placeholder="🔍 検索..." required>
                     </form>
                 </li>
-                <li><a href="/mypage">マイページ</a></li>
-                <li><a href="#" onclick="logout(event)">ログアウト</a></li>
+                <li>
+                    <a href="/mypage">
+                        <i data-lucide="user" class="nav-icon"></i>
+                        <span class="nav-text">マイページ</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="logout(event)">
+                        <i data-lucide="log-out" class="nav-icon"></i>
+                        <span class="nav-text">ログアウト</span>
+                    </a>
+                </li>
             </ul>
         </nav>
         <main class="container">
@@ -38,6 +168,9 @@
         </main>
         {% block extra_scripts %}
         <script>
+            // アイコンの初期化
+            lucide.createIcons();
+
             async function logout(e) {
                 e.preventDefault();
                 await fetch('/auth/logout', { method: 'POST' });
