@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ja" data-theme="light">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>会議室予約登録画面</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+        <style>
+            .participant-select {
+                max-height: 200px;
+                overflow-y: auto;
+                border: 1px solid var(--pico-form-element-border-color);
+                border-radius: var(--pico-border-radius);
+                padding: 0.5rem;
+            }
+            .participant-select label {
+                display: block;
+                margin-bottom: 0.25rem;
+            }
+            .time-slot-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 0.5rem;
+                margin-top: 0.5rem;
+            }
+            .time-slot {
+                padding: 0.5rem;
+                border: 2px solid var(--pico-form-element-border-color);
+                border-radius: var(--pico-border-radius);
+                cursor: pointer;
+                text-align: center;
+                transition: all 0.2s;
+            }
+            .time-slot:hover:not(.blocked):not(.selected-start):not(.selected-end) {
+                background-color: var(--pico-secondary-background);
+            }
+            .time-slot.blocked {
+                background-color: var(--pico-del-color);
+                color: white;
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+            .time-slot.selected-start {
+                background-color: var(--pico-primary);
+                color: white;
+                font-weight: bold;
+            }
+            .time-slot.selected-end {
+                background-color: var(--pico-contrast);
+                color: white;
+                font-weight: bold;
+            }
+            .time-slot.in-range {
+                background-color: var(--pico-primary-background);
+            }
+            .reservation-info {
+                background-color: var(--pico-card-background-color);
+                padding: 1rem;
+                border-radius: var(--pico-border-radius);
+                margin-top: 1rem;
+            }
+            .blocked-legend {
+                display: flex;
+                gap: 1rem;
+                margin-bottom: 1rem;
+                font-size: 0.875rem;
+            }
+            .legend-item {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            .legend-box {
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <nav>
+            <ul>
+                <li><strong>リソース管理システム</strong></li>
+            </ul>
+            <ul>
+                <li><a href="/dashboard">ダッシュボード</a></li>
+                <li><a href="/pcs/view">PC管理</a></li>
+                <li><a href="/employees/view">社員管理</a></li>
+                <li><a href="/departments/view">部署管理</a></li>
+                <li><a href="/meeting_rooms/view">会議室管理</a></li>
+                <li><a href="/reservations/view">予約管理</a></li>
+                <li><a href="/history/view">履歴管理</a></li>
+                <li><a href="/blogs/view">ブログ</a></li>
+                <li><a href="/blogs/my">マイブログ</a></li>
+                <li><a href="/mypage">マイページ</a></li>
+            </ul>
+        </nav>
+        <main class="container">
+        <h1>会議室予約登録</h1>
+
+        {% if success %}
+        <article style="background-color: var(--pico-ins-color);">予約を登録しました。</article>
+        {% endif %}
+
+        <form method="POST" action="/reservations/register" onsubmit="return prepareSubmit()">
+            <label>
+                タイトル:
+                <input type="text" name="title" id="title" required />
+            </label>
+
+            <label>
+                会議室:
+                <select name="meeting_room_id" id="meeting_room_id" required onchange="loadAvailability()">
+                    <option value="">選択してください</option>
+                    {% for room in rooms %}
+                    <option value="{{ room.id }}">{{ room.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <label>
+                日付:
+                <input type="date" id="reservation_date" required onchange="loadAvailability()" />
+            </label>
+
+            <div class="blocked-legend">
+                <div class="legend-item">
+                    <div class="legend-box" style="background-color: var(--pico-primary);"></div>
+                    <span>開始時刻</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background-color: var(--pico-contrast);"></div>
+                    <span>終了時刻</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-box" style="background-color: var(--pico-del-color); opacity: 0.6;"></div>
+                    <span>予約済み</span>
+                </div>
+            </div>
+
+            <div id="time-slots-container" style="display: none;">
+                <label>時間帯を選択 (30分単位):</label>
+                <div class="time-slot-grid" id="time-slots"></div>
+            </div>
+
+            <div id="selected-time-info" class="reservation-info" style="display: none;">
+                <strong>予約時間:</strong>
+                <p id="time-display"></p>
+            </div>
+
+            <input type="hidden" name="start_time" id="start_time" />
+            <input type="hidden" name="end_time" id="end_time" />
+
+            <label>
+                参加者:
+                <div class="participant-select">
+                    {% for employee in employees %}
+                    <label>
+                        <input type="checkbox" class="participant-checkbox" value="{{ employee.id }}" />
+                        {{ employee.name }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </label>
+
+            <input type="hidden" name="participant_ids" id="participant_ids" />
+
+            <button type="submit" id="submit-btn" disabled>登録</button>
+        </form>
+
+        <a href="/reservations/view" role="button" class="secondary">← 一覧に戻る</a>
+        </main>
+
+        <script>
+            let selectedStart = null;
+            let selectedEnd = null;
+            let blockedTimes = [];
+
+            // 30分単位の時間スロットを生成 (9:00-21:00)
+            function generateTimeSlots() {
+                const slots = [];
+                for (let hour = 9; hour < 21; hour++) {
+                    slots.push(`${String(hour).padStart(2, '0')}:00`);
+                    slots.push(`${String(hour).padStart(2, '0')}:30`);
+                }
+                slots.push('21:00'); // 最終時刻
+                return slots;
+            }
+
+            function isTimeBlocked(timeStr, date) {
+                const datetime = new Date(`${date}T${timeStr}`);
+
+                for (const blocked of blockedTimes) {
+                    const start = new Date(blocked.start);
+                    const end = new Date(blocked.end);
+
+                    // 時刻が予約済み期間内にあるかチェック
+                    if (datetime >= start && datetime < end) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function renderTimeSlots() {
+                const container = document.getElementById('time-slots');
+                const date = document.getElementById('reservation_date').value;
+
+                if (!date) return;
+
+                const slots = generateTimeSlots();
+                container.innerHTML = '';
+
+                slots.forEach((slot, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'time-slot';
+                    div.textContent = slot;
+                    div.dataset.time = slot;
+                    div.dataset.index = index;
+
+                    if (isTimeBlocked(slot, date)) {
+                        div.classList.add('blocked');
+                    } else {
+                        div.onclick = () => selectTime(slot, index);
+                    }
+
+                    container.appendChild(div);
+                });
+
+                document.getElementById('time-slots-container').style.display = 'block';
+            }
+
+            function selectTime(time, index) {
+                if (selectedStart === null) {
+                    // 開始時刻を選択
+                    selectedStart = { time, index };
+                    selectedEnd = null;
+                    updateDisplay();
+                } else if (selectedEnd === null) {
+                    // 終了時刻を選択
+                    if (index <= selectedStart.index) {
+                        // 開始時刻より前の場合は開始時刻を再設定
+                        selectedStart = { time, index };
+                        updateDisplay();
+                    } else {
+                        // 間にブロック時間がないかチェック
+                        const date = document.getElementById('reservation_date').value;
+                        const slots = generateTimeSlots();
+                        let hasBlocked = false;
+
+                        for (let i = selectedStart.index + 1; i < index; i++) {
+                            if (isTimeBlocked(slots[i], date)) {
+                                hasBlocked = true;
+                                break;
+                            }
+                        }
+
+                        if (hasBlocked) {
+                            alert('選択した時間帯に予約済みの時間が含まれています');
+                            return;
+                        }
+
+                        selectedEnd = { time, index };
+                        updateDisplay();
+                        document.getElementById('submit-btn').disabled = false;
+                    }
+                } else {
+                    // 両方選択済みの場合はリセットして再選択
+                    selectedStart = { time, index };
+                    selectedEnd = null;
+                    updateDisplay();
+                    document.getElementById('submit-btn').disabled = true;
+                }
+            }
+
+            function updateDisplay() {
+                const slots = document.querySelectorAll('.time-slot');
+                slots.forEach(slot => {
+                    slot.classList.remove('selected-start', 'selected-end', 'in-range');
+                });
+
+                if (selectedStart) {
+                    const startSlot = document.querySelector(`[data-index="${selectedStart.index}"]`);
+                    if (startSlot) startSlot.classList.add('selected-start');
+                }
+
+                if (selectedEnd) {
+                    const endSlot = document.querySelector(`[data-index="${selectedEnd.index}"]`);
+                    if (endSlot) endSlot.classList.add('selected-end');
+
+                    // 範囲内の時刻をハイライト
+                    for (let i = selectedStart.index + 1; i < selectedEnd.index; i++) {
+                        const slot = document.querySelector(`[data-index="${i}"]`);
+                        if (slot && !slot.classList.contains('blocked')) {
+                            slot.classList.add('in-range');
+                        }
+                    }
+
+                    // 選択時間を表示
+                    const date = document.getElementById('reservation_date').value;
+                    document.getElementById('start_time').value = `${date}T${selectedStart.time}`;
+                    document.getElementById('end_time').value = `${date}T${selectedEnd.time}`;
+                    document.getElementById('time-display').textContent =
+                        `${selectedStart.time} 〜 ${selectedEnd.time}`;
+                    document.getElementById('selected-time-info').style.display = 'block';
+                } else {
+                    document.getElementById('selected-time-info').style.display = 'none';
+                }
+            }
+
+            async function loadAvailability() {
+                const roomId = document.getElementById('meeting_room_id').value;
+                const date = document.getElementById('reservation_date').value;
+
+                if (!roomId || !date) return;
+
+                try {
+                    // APIトークンを取得（セッションから）
+                    const token = sessionStorage.getItem('api_token') || 'dummy-token';
+
+                    const response = await fetch(`/reservations/room/${roomId}/availability?date=${date}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        blockedTimes = data.blocked_times;
+                        renderTimeSlots();
+                        selectedStart = null;
+                        selectedEnd = null;
+                        document.getElementById('submit-btn').disabled = true;
+                    }
+                } catch (error) {
+                    console.error('Failed to load availability:', error);
+                    // エラー時もスロット表示
+                    blockedTimes = [];
+                    renderTimeSlots();
+                }
+            }
+
+            function prepareSubmit() {
+                if (!selectedStart || !selectedEnd) {
+                    alert('開始時刻と終了時刻を選択してください');
+                    return false;
+                }
+
+                const checkboxes = document.querySelectorAll('.participant-checkbox:checked');
+                const ids = Array.from(checkboxes).map(cb => cb.value);
+                document.getElementById('participant_ids').value = ids.join(',');
+
+                return true;
+            }
+
+            // 初期化
+            document.addEventListener('DOMContentLoaded', () => {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('reservation_date').value = today;
+            });
+        </script>
+    </body>
+</html>

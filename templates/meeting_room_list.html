@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}会議室管理{% endblock %}
+
+{% block extra_head %}
+<style>
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+    .action-buttons a, .action-buttons button {
+        margin: 0;
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if user_role == 'admin' %}
+<a href="/meeting_rooms/register" role="button">新規登録</a>
+{% endif %}
+
+{% if pagination.items or pagination.current_page > 1 %}
+<figure>
+    <table role="grid">
+        <thead>
+            <tr>
+                <th>名前</th>
+                <th>収容人数</th>
+                <th>場所</th>
+                <th>設備</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for room in pagination.items %}
+            <tr>
+                <td>{{ room.name }}</td>
+                <td>{{ room.capacity }}名</td>
+                <td>{{ room.location }}</td>
+                <td>{{ room.equipment if room.equipment else '-' }}</td>
+                <td>
+                    {% if user_role == 'admin' %}
+                    <div class="action-buttons">
+                        <a href="/meeting_rooms/{{ room.id }}/edit" role="button" class="secondary">編集</a>
+                        <form method="POST" action="/meeting_rooms/{{ room.id }}/delete" style="margin: 0">
+                            <button type="submit" class="secondary" onclick="return confirm('本当に削除しますか？')">削除</button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</figure>
+
+{% if pagination.total_pages > 1 %}
+<nav aria-label="ページネーション" style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
+    <ul style="display: flex; gap: 0.5rem; list-style: none; padding: 0; justify-content: center;">
+        {% if pagination.current_page > 1 %}
+        <li><a href="?page={{ pagination.current_page - 1 }}" role="button" class="secondary">前へ</a></li>
+        {% endif %}
+        {% for p in range(1, pagination.total_pages + 1) %}
+        <li><a href="?page={{ p }}" role="button" class="{% if p == pagination.current_page %}contrast{% else %}secondary{% endif %}">{{ p }}</a></li>
+        {% endfor %}
+        {% if pagination.current_page < pagination.total_pages %}
+        <li><a href="?page={{ pagination.current_page + 1 }}" role="button" class="secondary">次へ</a></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% else %}
+<p style="text-align: center;">登録されている会議室はありません。</p>
+{% endif %}
+{% endblock %}
