@@ -9,12 +9,21 @@ services:
       - db_data:/var/lib/postgresql/data
       - ./init_data/pg:/docker-entrypoint-initdb.d
     environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
   
   redis:
     image: redis:8.2-alpine
     ports:
       - "6379:6379"
+  
+  rustfs:
+    image: rustfs/rustfs:latest
+    ports:
+      - "9000:9000"
+      - '9001:9001'
+    environment:
+      - RUSTFS_ACCESS_KEY=${AWS_ACCESS_KEY_ID}
+      - RUSTFS_SECRET_KEY=${AWS_SECRET_ACCESS_KEY}
 volumes:
   db_data:
