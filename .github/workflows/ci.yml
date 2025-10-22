@@ -62,6 +62,11 @@ jobs:
         uses: hoverkraft-tech/compose-action@b716db5b717cb9b81e391fe638e5aceaa2299e43 # v2.4.0
         with:
           compose-file: "./compose.yaml"
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          AWS_ACCESS_KEY_ID: dummy
+          AWS_SECRET_ACCESS_KEY: dummy
 
       - name: Run dblinter
         if: steps.db_check.outputs.changed == 'true'
