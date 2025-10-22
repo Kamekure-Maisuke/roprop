@@ -17,7 +17,6 @@ services:
     ports:
       - "6379:6379"
   
-  # S3互換ストレージ(開発用)
   rustfs:
     image: rustfs/rustfs:latest
     ports:
