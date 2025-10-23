@@ -1,10 +1,12 @@
 from uuid import UUID
+
 from litestar import Router, delete, get, post, put
 from litestar.exceptions import NotFoundException
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
 from app.auth import bearer_token_guard
-from models import Tag, TagTable as T
+from models import Tag
+from models import TagTable as T
 
 
 async def _get_or_404(tag_id: UUID) -> dict:

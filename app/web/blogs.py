@@ -13,12 +13,22 @@ from app.auth import session_auth_guard
 from app.cache import delete_cached
 from models import (
     BlogLikeTable as BLT,
+)
+from models import (
     BlogPost,
-    BlogPostTable as B,
-    BlogPostTagTable as BPT,
     Employee,
-    EmployeeTable as E,
     Tag,
+)
+from models import (
+    BlogPostTable as B,
+)
+from models import (
+    BlogPostTagTable as BPT,
+)
+from models import (
+    EmployeeTable as E,
+)
+from models import (
     TagTable as T,
 )
 

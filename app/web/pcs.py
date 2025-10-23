@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID, uuid4
+
 from litestar import Request, Router, get, post
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import NotFoundException
@@ -13,19 +14,27 @@ from app.auth import admin_guard, session_auth_guard
 from app.cache import delete_cached
 from app.slack import (
     format_pc_created,
-    format_pc_updated,
     format_pc_deleted,
+    format_pc_updated,
     notify_slack,
 )
 from app.utils import generate_random_pc_name
 from models import (
-    Department,
-    DepartmentTable as D,
-    Employee,
-    EmployeeTable as E,
     PC,
+    Department,
+    Employee,
     PCAssignmentHistory,
+)
+from models import (
+    DepartmentTable as D,
+)
+from models import (
+    EmployeeTable as E,
+)
+from models import (
     PCAssignmentHistoryTable as H,
+)
+from models import (
     PCTable as P,
 )
 

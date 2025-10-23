@@ -12,7 +12,8 @@ from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 from app.auth import bearer_token_guard
 from app.cache import delete_cached, get_cached, set_cached
 from app.utils import process_profile_image
-from models import Employee, EmployeeTable as E, Role
+from models import Employee, Role
+from models import EmployeeTable as E
 
 
 async def _get_or_404(employee_id: UUID) -> dict:

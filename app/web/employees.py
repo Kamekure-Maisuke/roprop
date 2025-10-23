@@ -11,7 +11,9 @@ from litestar.response import Redirect, Response, Template
 from app.auth import admin_guard, session_auth_guard
 from app.cache import delete_cached
 from app.utils import process_profile_image
-from models import Department, DepartmentTable as D, Employee, EmployeeTable as E, Role
+from models import Department, Employee, Role
+from models import DepartmentTable as D
+from models import EmployeeTable as E
 
 FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)]
 

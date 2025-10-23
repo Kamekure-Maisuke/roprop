@@ -1,4 +1,5 @@
 from uuid import UUID, uuid4
+
 from litestar import Router, delete, get, post, put
 from litestar.exceptions import NotFoundException
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
@@ -7,14 +8,18 @@ from app.auth import bearer_token_guard
 from app.cache import delete_cached, get_cached, set_cached
 from app.slack import (
     format_pc_created,
-    format_pc_updated,
     format_pc_deleted,
+    format_pc_updated,
     notify_slack,
 )
 from models import (
     PC,
     PCAssignmentHistory,
+)
+from models import (
     PCAssignmentHistoryTable as H,
+)
+from models import (
     PCTable as P,
 )
 

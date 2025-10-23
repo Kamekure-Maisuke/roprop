@@ -2,13 +2,16 @@ from dataclasses import dataclass
 from typing import Literal
 from uuid import UUID
 
-
 from litestar import Router, get
 from litestar.datastructures import State
 
 from models import (
     BlogPostTable as B,
+)
+from models import (
     EmployeeTable as E,
+)
+from models import (
     PCTable as P,
 )
 

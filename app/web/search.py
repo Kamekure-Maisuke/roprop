@@ -2,7 +2,9 @@ from litestar import Request, Router, get
 from litestar.response import Template
 
 from app.auth import session_auth_guard
-from models import BlogPostTable as B, EmployeeTable as E, PCTable as P
+from models import BlogPostTable as B
+from models import EmployeeTable as E
+from models import PCTable as P
 
 
 @get("/search/view")

@@ -1,7 +1,7 @@
 import os
-import httpx
 from uuid import UUID
 
+import httpx
 
 SLACK_WEBHOOK_URL = os.getenv("SLACK_WEBHOOK", "")
 

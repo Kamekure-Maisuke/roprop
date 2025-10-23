@@ -4,14 +4,16 @@ from enum import Enum
 from uuid import UUID, uuid4
 
 from piccolo.columns import (
-    Bytea,
+    UUID as PiccoloUUID,
+)
+from piccolo.columns import (
     Boolean,
+    Bytea,
     Date,
     ForeignKey,
     Integer,
     Text,
     Timestamp,
-    UUID as PiccoloUUID,
     Varchar,
 )
 from piccolo.table import Table

@@ -1,5 +1,6 @@
 from typing import Annotated
 from uuid import UUID
+
 from litestar import Request, Router, get, post
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import NotFoundException
@@ -8,8 +9,8 @@ from litestar.params import Body
 from litestar.response import Redirect, Template
 
 from app.auth import admin_guard, session_auth_guard
-
-from models import Tag, TagTable as T
+from models import Tag
+from models import TagTable as T
 
 FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)]
 

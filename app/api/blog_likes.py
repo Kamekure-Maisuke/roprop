@@ -6,7 +6,8 @@ from litestar.exceptions import NotFoundException
 from litestar.status_codes import HTTP_201_CREATED, HTTP_204_NO_CONTENT
 
 from app.auth import bearer_token_guard
-from models import BlogLikeTable as BLT, BlogPostTable as BPT
+from models import BlogLikeTable as BLT
+from models import BlogPostTable as BPT
 
 
 async def _check_post_exists(blog_post_id: UUID) -> None:

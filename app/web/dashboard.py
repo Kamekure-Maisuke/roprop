@@ -8,9 +8,17 @@ from app.auth import session_auth_guard
 from app.cache import get_cached, set_cached
 from models import (
     BlogLikeTable as BLT,
+)
+from models import (
     BlogPostTable as B,
+)
+from models import (
     DepartmentTable as D,
+)
+from models import (
     EmployeeTable as E,
+)
+from models import (
     PCTable as P,
 )
 

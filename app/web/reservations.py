@@ -1,6 +1,7 @@
+from datetime import datetime, timedelta
 from typing import Annotated
 from uuid import UUID
-from datetime import datetime, timedelta
+
 from litestar import Request, Router, get, post
 from litestar.enums import RequestEncodingType
 from litestar.exceptions import NotFoundException
@@ -11,10 +12,16 @@ from litestar.response import Redirect, Template
 from app.auth import session_auth_guard
 from app.cache import delete_cached
 from models import (
-    MeetingRoomReservationTable as MRR,
-    ReservationParticipantTable as RP,
-    MeetingRoomTable as MR,
     EmployeeTable as E,
+)
+from models import (
+    MeetingRoomReservationTable as MRR,
+)
+from models import (
+    MeetingRoomTable as MR,
+)
+from models import (
+    ReservationParticipantTable as RP,
 )
 
 FormData = Annotated[dict[str, str], Body(media_type=RequestEncodingType.URL_ENCODED)]
